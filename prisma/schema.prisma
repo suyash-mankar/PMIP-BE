@@ -1,0 +1,119 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  password  String
+  role      String    @default("user") // user, admin
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  sessions  Session[]
+  payments  Payment[]
+  events    Event[]
+
+  @@index([email])
+}
+
+model Question {
+  id          Int       @id @default(autoincrement())
+  text        String    @db.Text
+  category    String    // product_design, strategy, execution, behavioral
+  level       String    // junior, mid, senior
+  difficulty  Int       @default(5) // 1-10
+  tags        String?   @db.Text // JSON array as string
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  sessions    Session[]
+
+  @@index([level])
+  @@index([category])
+}
+
+model Session {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  questionId  Int
+  answerText  String    @db.Text
+  transcript  String?   @db.Text // Future use for voice transcripts
+  status      String    @default("submitted") // submitted, scored, needs_review
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question    Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  scores      Score?
+  events      Event[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Score {
+  id              Int       @id @default(autoincrement())
+  sessionId       Int       @unique
+  structure       Int       // 0-10
+  metrics         Int       // 0-10
+  prioritization  Int       // 0-10
+  userEmpathy     Int       // 0-10
+  communication   Int       // 0-10
+  feedback        String    @db.Text
+  sampleAnswer    String    @db.Text
+  totalScore      Int       // Sum or average
+  status          String    @default("completed") // completed, needs_review
+  tokensUsed      Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  session         Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([status])
+}
+
+model Payment {
+  id                  Int       @id @default(autoincrement())
+  userId              Int
+  stripeSessionId     String    @unique
+  stripeCustomerId    String?
+  amount              Int       // in cents
+  currency            String    @default("usd")
+  status              String    // pending, completed, failed
+  subscriptionType    String?   // free, basic, premium
+  subscriptionEndDate DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([stripeSessionId])
+}
+
+model Event {
+  id          Int       @id @default(autoincrement())
+  userId      Int?
+  sessionId   Int?
+  eventType   String    // api_request, openai_call, error, webhook
+  metadata    String?   @db.Text // JSON metadata
+  tokensUsed  Int       @default(0)
+  createdAt   DateTime  @default(now())
+  
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  session     Session?  @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([eventType])
+  @@index([createdAt])
+}

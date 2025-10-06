@@ -1,0 +1,45 @@
+const express = require('express');
+const {
+  startInterview,
+  submitAnswer,
+  score,
+  getSessions,
+  getSessionById,
+} = require('../controllers/interviewController');
+const { authMiddleware } = require('../middlewares/auth');
+const { scoringLimiter } = require('../middlewares/rateLimiter');
+const {
+  validate,
+  startInterviewSchema,
+  submitAnswerSchema,
+  scoreSchema,
+} = require('../utils/validation');
+
+const router = express.Router();
+
+router.post(
+  '/start-interview',
+  authMiddleware,
+  validate(startInterviewSchema),
+  startInterview
+);
+
+router.post(
+  '/submit-answer',
+  authMiddleware,
+  validate(submitAnswerSchema),
+  submitAnswer
+);
+
+router.post(
+  '/score',
+  authMiddleware,
+  scoringLimiter,
+  validate(scoreSchema),
+  score
+);
+
+router.get('/sessions', authMiddleware, getSessions);
+router.get('/sessions/:id', authMiddleware, getSessionById);
+
+module.exports = router;
