@@ -30,6 +30,27 @@ Provide:
 - **Model Answer:** A 10/10 systematic root cause analysis response
 - **Overall Score:** Average of all dimensions
 
+OUTPUT FORMAT (JSON):
+Return a clean JSON object with no extra text or commentary. It must follow this exact schema:
+
+{
+  "problem_identification": 0-10,
+  "analysis_depth": 0-10,
+  "data_driven_approach": 0-10,
+  "solution_prioritization": 0-10,
+  "implementation_planning": 0-10,
+  "risk_assessment": 0-10,
+  "overall_score": 0-10,
+  "feedback": [
+    "Short bullet 1 (strength or growth area)",
+    "Short bullet 2 (specific improvement advice)",
+    "Short bullet 3 (additional feedback)"
+  ],
+  "model_answer": "Write the ideal 10/10 Product Manager answer. Be comprehensive, structured, and demonstrate advanced PM thinking."
+}
+
+All numbers must be integers 0–10. Always include overall_score field.
+
 RESPOND IN VALID JSON FORMAT ONLY.`,
 
   product_improvement: (question, answer) => `
@@ -57,6 +78,27 @@ Provide:
 - **Feedback (2-4 bullets):** Areas where their improvement strategy could be stronger
 - **Model Answer:** A comprehensive product improvement strategy
 - **Overall Score:** Average of all dimensions
+
+OUTPUT FORMAT (JSON):
+Return a clean JSON object with no extra text or commentary. It must follow this exact schema:
+
+{
+  "user_research_foundation": 0-10,
+  "improvement_prioritization": 0-10,
+  "solution_innovation": 0-10,
+  "implementation_planning": 0-10,
+  "metrics_definition": 0-10,
+  "iteration_strategy": 0-10,
+  "overall_score": 0-10,
+  "feedback": [
+    "Short bullet 1 (strength or growth area)",
+    "Short bullet 2 (specific improvement advice)",
+    "Short bullet 3 (additional feedback)"
+  ],
+  "model_answer": "Write the ideal 10/10 Product Manager answer. Be comprehensive, structured, and demonstrate advanced PM thinking."
+}
+
+All numbers must be integers 0–10. Always include overall_score field.
 
 RESPOND IN VALID JSON FORMAT ONLY.`,
 
@@ -123,6 +165,27 @@ EXPONENT-STYLE FEEDBACK REQUIREMENTS:
 - **Model Answer:** A comprehensive 10/10 response following Exponent's framework
 - **Overall Score:** Weighted average (User-Centricity: 25%, Innovation: 20%, Technical: 20%, UX: 15%, Metrics: 10%, Iteration: 10%)
 
+OUTPUT FORMAT (JSON):
+Return a clean JSON object with no extra text or commentary. It must follow this exact schema:
+
+{
+  "user_centricity": 0-10,
+  "innovation": 0-10,
+  "technical_feasibility": 0-10,
+  "user_experience": 0-10,
+  "success_metrics": 0-10,
+  "iteration": 0-10,
+  "overall_score": 0-10,
+  "feedback": [
+    "Short bullet 1 (strength or growth area)",
+    "Short bullet 2 (specific improvement advice)",
+    "Short bullet 3 (additional feedback)"
+  ],
+  "model_answer": "Write the ideal 10/10 Product Manager answer following Exponent's framework. Be comprehensive, structured, and demonstrate advanced PM thinking."
+}
+
+All numbers must be integers 0–10. Always include overall_score field.
+
 RESPOND IN VALID JSON FORMAT ONLY.`,
 
   metrics: (question, answer) => `
@@ -188,6 +251,27 @@ EXPONENT-STYLE FEEDBACK REQUIREMENTS:
 - **Model Answer:** A comprehensive 10/10 response following Exponent's framework
 - **Overall Score:** Weighted average (Metrics Selection: 20%, Data Analysis: 25%, Statistical: 15%, A/B Testing: 15%, Insights: 15%, Business Impact: 10%)
 
+OUTPUT FORMAT (JSON):
+Return a clean JSON object with no extra text or commentary. It must follow this exact schema:
+
+{
+  "metrics_selection": 0-10,
+  "data_analysis": 0-10,
+  "statistical_understanding": 0-10,
+  "ab_testing": 0-10,
+  "actionable_insights": 0-10,
+  "business_impact": 0-10,
+  "overall_score": 0-10,
+  "feedback": [
+    "Short bullet 1 (strength or growth area)",
+    "Short bullet 2 (specific improvement advice)",
+    "Short bullet 3 (additional feedback)"
+  ],
+  "model_answer": "Write the ideal 10/10 Product Manager answer following Exponent's framework. Be comprehensive, structured, and demonstrate advanced PM thinking."
+}
+
+All numbers must be integers 0–10. Always include overall_score field.
+
 RESPOND IN VALID JSON FORMAT ONLY.`,
 
   product_strategy: (question, answer) => `
@@ -216,6 +300,27 @@ Provide:
 - **Model Answer:** A comprehensive strategic analysis and recommendation
 - **Overall Score:** Average of all dimensions
 
+OUTPUT FORMAT (JSON):
+Return a clean JSON object with no extra text or commentary. It must follow this exact schema:
+
+{
+  "market_analysis": 0-10,
+  "competitive_positioning": 0-10,
+  "strategic_thinking": 0-10,
+  "resource_allocation": 0-10,
+  "risk_assessment": 0-10,
+  "execution_planning": 0-10,
+  "overall_score": 0-10,
+  "feedback": [
+    "Short bullet 1 (strength or growth area)",
+    "Short bullet 2 (specific improvement advice)",
+    "Short bullet 3 (additional feedback)"
+  ],
+  "model_answer": "Write the ideal 10/10 Product Manager answer. Be comprehensive, structured, and demonstrate advanced PM thinking."
+}
+
+All numbers must be integers 0–10. Always include overall_score field.
+
 RESPOND IN VALID JSON FORMAT ONLY.`,
 
   guesstimates: (question, answer) => `
@@ -243,6 +348,27 @@ Provide:
 - **Feedback (2-4 bullets):** Areas where their estimation approach could be improved
 - **Model Answer:** A structured, well-reasoned estimation with clear methodology
 - **Overall Score:** Average of all dimensions
+
+OUTPUT FORMAT (JSON):
+Return a clean JSON object with no extra text or commentary. It must follow this exact schema:
+
+{
+  "estimation_framework": 0-10,
+  "data_reasoning": 0-10,
+  "assumption_validation": 0-10,
+  "calculation_accuracy": 0-10,
+  "sensitivity_analysis": 0-10,
+  "business_application": 0-10,
+  "overall_score": 0-10,
+  "feedback": [
+    "Short bullet 1 (strength or growth area)",
+    "Short bullet 2 (specific improvement advice)",
+    "Short bullet 3 (additional feedback)"
+  ],
+  "model_answer": "Write the ideal 10/10 Product Manager answer. Be comprehensive, structured, and demonstrate advanced PM thinking."
+}
+
+All numbers must be integers 0–10. Always include overall_score field.
 
 RESPOND IN VALID JSON FORMAT ONLY.`,
 };

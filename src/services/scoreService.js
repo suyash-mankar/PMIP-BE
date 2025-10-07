@@ -34,7 +34,7 @@ async function scoreSession(session) {
 
       // Use overall_score from AI if available, otherwise calculate average
       let totalScore = scoreData.overall_score;
-      
+
       if (!totalScore) {
         // Handle old field format
         if (scoreData.product_sense && scoreData.metrics && scoreData.prioritization) {
@@ -48,22 +48,110 @@ async function scoreSession(session) {
               6
           );
         }
-        // Handle new Exponent-style field format
-        else if (scoreData.user_centricity && scoreData.innovation && scoreData.technical_feasibility) {
+        // Handle new Exponent-style field format (product design)
+        else if (
+          scoreData.user_centricity &&
+          scoreData.innovation &&
+          scoreData.technical_feasibility
+        ) {
           // Use weighted average as specified in the rubric
           totalScore = Math.round(
-            (scoreData.user_centricity * 0.25 +
-              scoreData.innovation * 0.20 +
-              scoreData.technical_feasibility * 0.20 +
+            scoreData.user_centricity * 0.25 +
+              scoreData.innovation * 0.2 +
+              scoreData.technical_feasibility * 0.2 +
               scoreData.user_experience * 0.15 +
-              scoreData.success_metrics * 0.10 +
-              scoreData.iteration * 0.10)
+              scoreData.success_metrics * 0.1 +
+              scoreData.iteration * 0.1
+          );
+        }
+        // Handle new Exponent-style field format (metrics)
+        else if (
+          scoreData.metrics_selection &&
+          scoreData.data_analysis &&
+          scoreData.statistical_understanding
+        ) {
+          // Use weighted average as specified in the metrics rubric
+          totalScore = Math.round(
+            scoreData.metrics_selection * 0.20 +
+              scoreData.data_analysis * 0.25 +
+              scoreData.statistical_understanding * 0.15 +
+              scoreData.ab_testing * 0.15 +
+              scoreData.actionable_insights * 0.15 +
+              scoreData.business_impact * 0.10
+          );
+        }
+        // Handle root cause analysis format
+        else if (
+          scoreData.problem_identification &&
+          scoreData.analysis_depth &&
+          scoreData.data_driven_approach
+        ) {
+          // Simple average for root cause analysis
+          totalScore = Math.round(
+            (scoreData.problem_identification +
+              scoreData.analysis_depth +
+              scoreData.data_driven_approach +
+              scoreData.solution_prioritization +
+              scoreData.implementation_planning +
+              scoreData.risk_assessment) /
+              6
+          );
+        }
+        // Handle product improvement format
+        else if (
+          scoreData.user_research_foundation &&
+          scoreData.improvement_prioritization &&
+          scoreData.solution_innovation
+        ) {
+          // Simple average for product improvement
+          totalScore = Math.round(
+            (scoreData.user_research_foundation +
+              scoreData.improvement_prioritization +
+              scoreData.solution_innovation +
+              scoreData.implementation_planning +
+              scoreData.metrics_definition +
+              scoreData.iteration_strategy) /
+              6
+          );
+        }
+        // Handle product strategy format
+        else if (
+          scoreData.market_analysis &&
+          scoreData.competitive_positioning &&
+          scoreData.strategic_thinking
+        ) {
+          // Simple average for product strategy
+          totalScore = Math.round(
+            (scoreData.market_analysis +
+              scoreData.competitive_positioning +
+              scoreData.strategic_thinking +
+              scoreData.resource_allocation +
+              scoreData.risk_assessment +
+              scoreData.execution_planning) /
+              6
+          );
+        }
+        // Handle guesstimates format
+        else if (
+          scoreData.estimation_framework &&
+          scoreData.data_reasoning &&
+          scoreData.assumption_validation
+        ) {
+          // Simple average for guesstimates
+          totalScore = Math.round(
+            (scoreData.estimation_framework +
+              scoreData.data_reasoning +
+              scoreData.assumption_validation +
+              scoreData.calculation_accuracy +
+              scoreData.sensitivity_analysis +
+              scoreData.business_application) /
+              6
           );
         }
         // Fallback: calculate average of all numeric fields (excluding overall_score)
         else {
-          const scoringFields = Object.keys(scoreData).filter(key => 
-            typeof scoreData[key] === 'number' && key !== 'overall_score'
+          const scoringFields = Object.keys(scoreData).filter(
+            key => typeof scoreData[key] === 'number' && key !== 'overall_score'
           );
           if (scoringFields.length > 0) {
             const sum = scoringFields.reduce((acc, field) => acc + scoreData[field], 0);
@@ -84,11 +172,11 @@ async function scoreSession(session) {
         data: {
           sessionId: session.id,
           // Map old field format
-          structure: scoreData.structure || scoreData.user_centricity || 0,
-          metrics: scoreData.metrics || scoreData.success_metrics || 0,
-          prioritization: scoreData.prioritization || scoreData.innovation || 0,
-          userEmpathy: scoreData.user_empathy || scoreData.user_experience || 0,
-          communication: scoreData.communication || scoreData.technical_feasibility || 0,
+          structure: scoreData.structure || scoreData.user_centricity || scoreData.data_analysis || 0,
+          metrics: scoreData.metrics || scoreData.success_metrics || scoreData.metrics_selection || 0,
+          prioritization: scoreData.prioritization || scoreData.innovation || scoreData.actionable_insights || 0,
+          userEmpathy: scoreData.user_empathy || scoreData.user_experience || scoreData.business_impact || 0,
+          communication: scoreData.communication || scoreData.technical_feasibility || scoreData.statistical_understanding || 0,
           // For new format, we'll store additional fields in a JSON field if needed
           feedback: feedbackString,
           sampleAnswer: scoreData.model_answer,

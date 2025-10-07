@@ -154,28 +154,94 @@ function parseAndValidateScore(content) {
   }
 
   // Validate schema - handle both old and new field names
-  const requiredFields = [
-    'overall_score',
-    'feedback',
-    'model_answer',
-  ];
+  const requiredFields = ['overall_score', 'feedback', 'model_answer'];
 
   // Check for old field format
-  const oldFields = ['product_sense', 'metrics', 'prioritization', 'structure', 'communication', 'user_empathy'];
+  const oldFields = [
+    'product_sense',
+    'metrics',
+    'prioritization',
+    'structure',
+    'communication',
+    'user_empathy',
+  ];
   const hasOldFields = oldFields.every(field => field in parsed);
 
-  // Check for new Exponent-style field format
-  const newFields = ['user_centricity', 'innovation', 'technical_feasibility', 'user_experience', 'success_metrics', 'iteration'];
-  const hasNewFields = newFields.every(field => field in parsed);
+  // Check for new Exponent-style field format (product design)
+  const productDesignFields = [
+    'user_centricity',
+    'innovation',
+    'technical_feasibility',
+    'user_experience',
+    'success_metrics',
+    'iteration',
+  ];
+  const hasProductDesignFields = productDesignFields.every(field => field in parsed);
 
-  if (!hasOldFields && !hasNewFields) {
+  // Check for new Exponent-style field format (metrics)
+  const metricsFields = [
+    'metrics_selection',
+    'data_analysis',
+    'statistical_understanding',
+    'ab_testing',
+    'actionable_insights',
+    'business_impact',
+  ];
+  const hasMetricsFields = metricsFields.every(field => field in parsed);
+
+  // Check for other category field formats
+  const rootCauseFields = [
+    'problem_identification',
+    'analysis_depth',
+    'data_driven_approach',
+    'solution_prioritization',
+    'implementation_planning',
+    'risk_assessment',
+  ];
+  const hasRootCauseFields = rootCauseFields.every(field => field in parsed);
+
+  const productImprovementFields = [
+    'user_research_foundation',
+    'improvement_prioritization',
+    'solution_innovation',
+    'implementation_planning',
+    'metrics_definition',
+    'iteration_strategy',
+  ];
+  const hasProductImprovementFields = productImprovementFields.every(field => field in parsed);
+
+  const productStrategyFields = [
+    'market_analysis',
+    'competitive_positioning',
+    'strategic_thinking',
+    'resource_allocation',
+    'risk_assessment',
+    'execution_planning',
+  ];
+  const hasProductStrategyFields = productStrategyFields.every(field => field in parsed);
+
+  const guesstimatesFields = [
+    'estimation_framework',
+    'data_reasoning',
+    'assumption_validation',
+    'calculation_accuracy',
+    'sensitivity_analysis',
+    'business_application',
+  ];
+  const hasGuesstimatesFields = guesstimatesFields.every(field => field in parsed);
+
+  if (!hasOldFields && !hasProductDesignFields && !hasMetricsFields && 
+      !hasRootCauseFields && !hasProductImprovementFields && 
+      !hasProductStrategyFields && !hasGuesstimatesFields) {
     // Try to find any scoring fields
-    const scoringFields = Object.keys(parsed).filter(key => 
-      typeof parsed[key] === 'number' && key !== 'overall_score'
+    const scoringFields = Object.keys(parsed).filter(
+      key => typeof parsed[key] === 'number' && key !== 'overall_score'
     );
-    
+
     if (scoringFields.length === 0) {
-      throw new Error(`Missing required scoring fields. Expected either old format (${oldFields.join(', ')}) or new format (${newFields.join(', ')})`);
+      throw new Error(
+        `Missing required scoring fields. Expected one of: old format (${oldFields.join(', ')}) or any category format`
+      );
     }
   }
 
