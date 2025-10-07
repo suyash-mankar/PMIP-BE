@@ -105,7 +105,7 @@ async function callOpenAIForScoring(question, answer) {
   const prompt = SCORING_PROMPT_TEMPLATE(question, answer);
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-5', // Latest GPT-5 flagship model - best for analytical PM scoring
+    model: 'gpt-4o', // Using GPT-4o - proven fast and reliable for PM scoring
     messages: [
       {
         role: 'system',
@@ -117,13 +117,16 @@ async function callOpenAIForScoring(question, answer) {
         content: prompt,
       },
     ],
-    // Note: GPT-5 only supports temperature: 1 (default), so we omit it
-    max_completion_tokens: 1500, // GPT-5 uses max_completion_tokens instead of max_tokens
+    temperature: 0.7, // GPT-4o supports custom temperature
+    max_tokens: 2000, // Increased to ensure full JSON response (6 scores + feedback + model answer)
     response_format: { type: 'json_object' }, // Enforce JSON mode
   });
 
   const content = completion.choices[0].message.content;
   const tokensUsed = completion.usage.total_tokens;
+
+  console.log('OpenAI Scoring Response Length:', content.length, 'characters');
+  console.log('Tokens Used:', tokensUsed);
 
   return { content, tokensUsed };
 }
