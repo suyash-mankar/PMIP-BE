@@ -105,11 +105,12 @@ async function callOpenAIForScoring(question, answer) {
   const prompt = SCORING_PROMPT_TEMPLATE(question, answer);
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4-turbo-preview',
+    model: 'gpt-5', // Latest GPT-5 flagship model - best for analytical PM scoring
     messages: [
       {
         role: 'system',
-        content: 'You are a senior PM interviewer at a top-tier tech company. You are professional, sharp, analytical, and critical. Always respond with valid JSON only. Be brutally honest in your feedback.',
+        content:
+          'You are a senior PM interviewer at a top-tier tech company. You are professional, sharp, analytical, and critical. Always respond with valid JSON only. Be brutally honest in your feedback.',
       },
       {
         role: 'user',
@@ -118,7 +119,7 @@ async function callOpenAIForScoring(question, answer) {
     ],
     temperature: 0.3, // Slightly higher for more varied, human-like feedback
     max_tokens: 1500, // Increased for detailed feedback and model answer
-    response_format: { type: 'json_object' }, // Enforce JSON mode (GPT-4 Turbo feature)
+    response_format: { type: 'json_object' }, // Enforce JSON mode
   });
 
   const content = completion.choices[0].message.content;
@@ -236,7 +237,7 @@ Remember: You're helping them understand the question better, not solving it for
   ];
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4-turbo-preview',
+    model: 'gpt-5-mini', // Faster and cheaper GPT-5 mini for clarifications
     messages: messages,
     temperature: 0.7, // More conversational than scoring
     max_tokens: 300, // Keep responses concise
