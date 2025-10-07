@@ -117,7 +117,7 @@ async function callOpenAIForScoring(question, answer) {
         content: prompt,
       },
     ],
-    temperature: 0.3, // Slightly higher for more varied, human-like feedback
+    // Note: GPT-5 only supports temperature: 1 (default), so we omit it
     max_completion_tokens: 1500, // GPT-5 uses max_completion_tokens instead of max_tokens
     response_format: { type: 'json_object' }, // Enforce JSON mode
   });
@@ -239,7 +239,7 @@ Remember: You're helping them understand the question better, not solving it for
   const completion = await openai.chat.completions.create({
     model: 'gpt-5-mini', // Faster and cheaper GPT-5 mini for clarifications
     messages: messages,
-    temperature: 0.7, // More conversational than scoring
+    // Note: GPT-5 only supports temperature: 1 (default), so we omit it
     max_completion_tokens: 300, // GPT-5 uses max_completion_tokens instead of max_tokens
   });
 
