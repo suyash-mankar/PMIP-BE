@@ -18,33 +18,13 @@ const {
 
 const router = express.Router();
 
-router.post(
-  '/start-interview',
-  authMiddleware,
-  validate(startInterviewSchema),
-  startInterview
-);
+router.post('/start-interview', authMiddleware, validate(startInterviewSchema), startInterview);
 
-router.post(
-  '/submit-answer',
-  authMiddleware,
-  validate(submitAnswerSchema),
-  submitAnswer
-);
+router.post('/submit-answer', authMiddleware, validate(submitAnswerSchema), submitAnswer);
 
-router.post(
-  '/score',
-  authMiddleware,
-  scoringLimiter,
-  validate(scoreSchema),
-  score
-);
+router.post('/score', authMiddleware, scoringLimiter, validate(scoreSchema), score);
 
-router.post(
-  '/clarify',
-  authMiddleware,
-  clarify
-);
+router.post('/clarify', authMiddleware, clarify);
 
 router.get('/sessions', authMiddleware, getSessions);
 router.get('/sessions/:id', authMiddleware, getSessionById);
