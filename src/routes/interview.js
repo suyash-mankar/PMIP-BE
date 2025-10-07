@@ -3,6 +3,7 @@ const {
   startInterview,
   submitAnswer,
   score,
+  clarify,
   getSessions,
   getSessionById,
 } = require('../controllers/interviewController');
@@ -37,6 +38,12 @@ router.post(
   scoringLimiter,
   validate(scoreSchema),
   score
+);
+
+router.post(
+  '/clarify',
+  authMiddleware,
+  clarify
 );
 
 router.get('/sessions', authMiddleware, getSessions);

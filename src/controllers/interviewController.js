@@ -1,5 +1,6 @@
 const prisma = require('../config/database');
 const { scoreSession } = require('../services/scoreService');
+const { callOpenAIForClarification } = require('../services/openaiService');
 
 const startInterview = async (req, res, next) => {
   try {
@@ -177,10 +178,62 @@ const getSessionById = async (req, res, next) => {
   }
 };
 
+const clarify = async (req, res, next) => {
+  try {
+    const { questionId, userMessage, conversationHistory } = req.body;
+
+    // Validate inputs
+    if (!questionId) {
+      return res.status(400).json({ error: 'questionId is required' });
+    }
+
+    if (!userMessage || !userMessage.trim()) {
+      return res.status(400).json({ error: 'userMessage is required' });
+    }
+
+    // Get the question from database
+    const question = await prisma.question.findUnique({
+      where: { id: questionId },
+    });
+
+    if (!question) {
+      return res.status(404).json({ error: 'Question not found' });
+    }
+
+    // Call OpenAI for clarification
+    const { response, tokensUsed } = await callOpenAIForClarification(
+      question.text,
+      conversationHistory || []
+    );
+
+    // Log the clarification event
+    await prisma.event.create({
+      data: {
+        userId: req.user.id,
+        eventType: 'clarification_requested',
+        metadata: JSON.stringify({
+          questionId,
+          userMessage: userMessage.substring(0, 100), // Store first 100 chars
+          tokensUsed,
+        }),
+      },
+    });
+
+    res.json({
+      response,
+      message: 'Clarification provided',
+    });
+  } catch (error) {
+    console.error('Clarification error:', error);
+    next(error);
+  }
+};
+
 module.exports = {
   startInterview,
   submitAnswer,
   score,
+  clarify,
   getSessions,
   getSessionById,
 };

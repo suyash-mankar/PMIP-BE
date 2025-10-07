@@ -128,8 +128,53 @@ function parseAndValidateScore(content) {
   return parsed;
 }
 
+/**
+ * Call OpenAI API to answer clarifying questions during PM interview
+ * Acts as an interviewer who helps clarify the question context
+ * @param {string} question - The original interview question
+ * @param {Array} conversationHistory - Array of {role, content} message objects
+ * @returns {Promise<string>} AI response to the clarification
+ */
+async function callOpenAIForClarification(question, conversationHistory) {
+  const systemPrompt = `You are an experienced Product Management interviewer conducting a mock interview. 
+The candidate has been asked the following question:
+
+"${question}"
+
+Your role is to:
+1. Answer clarifying questions the candidate may have about the scope, constraints, or context
+2. Provide helpful guidance without giving away the answer
+3. Encourage the candidate to think through the problem
+4. Be supportive and professional, like a real interviewer
+5. If the candidate asks for specific details (target users, market, constraints), provide reasonable assumptions
+6. Keep responses concise and conversational (2-4 sentences typically)
+
+Remember: You're helping them understand the question better, not solving it for them.`;
+
+  const messages = [
+    {
+      role: 'system',
+      content: systemPrompt,
+    },
+    ...conversationHistory,
+  ];
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4-turbo-preview',
+    messages: messages,
+    temperature: 0.7, // More conversational than scoring
+    max_tokens: 300, // Keep responses concise
+  });
+
+  const response = completion.choices[0].message.content;
+  const tokensUsed = completion.usage.total_tokens;
+
+  return { response, tokensUsed };
+}
+
 module.exports = {
   callOpenAIForScoring,
   parseAndValidateScore,
+  callOpenAIForClarification,
   SCORING_PROMPT_TEMPLATE,
 };
