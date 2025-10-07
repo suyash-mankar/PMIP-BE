@@ -259,14 +259,16 @@ function getCategoryDimensions(category) {
     ],
   };
 
-  return dimensionMap[normalizedCategory] || [
-    'Product Sense',
-    'Metrics & Data',
-    'Prioritization & Tradeoffs',
-    'Analytical Structure',
-    'Communication Clarity',
-    'User Empathy',
-  ];
+  return (
+    dimensionMap[normalizedCategory] || [
+      'Product Sense',
+      'Metrics & Data',
+      'Prioritization & Tradeoffs',
+      'Analytical Structure',
+      'Communication Clarity',
+      'User Empathy',
+    ]
+  );
 }
 
 // Extend CATEGORY_PROMPTS with additional categories
@@ -451,25 +453,125 @@ RESPOND IN VALID JSON FORMAT ONLY.`;
 
 function getCategoryScoringPrompt(question, answer, category) {
   const promptFunction = CATEGORY_PROMPTS[category];
-  return promptFunction ? promptFunction(question, answer) : CATEGORY_PROMPTS.product_strategy(question, answer);
+  return promptFunction
+    ? promptFunction(question, answer)
+    : CATEGORY_PROMPTS.product_strategy(question, answer);
 }
 
 function getCategoryDimensions(category) {
   const dimensions = {
-    product_design: ['User Research Foundation', 'Design Innovation', 'Technical Feasibility', 'User Experience Flow', 'Business Alignment', 'Iterative Approach'],
-    product_strategy: ['Strategic Thinking', 'Market Understanding', 'Competitive Analysis', 'Business Model', 'Risk Assessment', 'Long-term Vision'],
-    metrics: ['Metrics Selection', 'Data Analysis', 'Statistical Understanding', 'A/B Testing Design', 'Actionable Insights', 'Business Impact'],
-    product_improvement: ['Problem Identification', 'Root Cause Analysis', 'Solution Design', 'Implementation Planning', 'Success Measurement', 'Iterative Improvement'],
-    root_cause_analysis: ['Problem Definition', 'Data Gathering', 'Analysis Framework', 'Root Cause Identification', 'Solution Development', 'Prevention Strategy'],
-    guesstimates: ['Problem Breakdown', 'Assumption Making', 'Calculation Method', 'Reality Checks', 'Alternative Approaches', 'Confidence Level'],
-    behavioral: ['STAR Method Structure', 'Leadership Impact', 'Problem-Solving Skills', 'Communication Clarity', 'Quantifiable Results', 'Self-Awareness'],
-    technical: ['Technical Understanding', 'Engineering Collaboration', 'Trade-off Analysis', 'Scalability Thinking', 'API and Integration Knowledge', 'Technical Communication'],
-    system_design: ['Architecture Understanding', 'Scalability Planning', 'Data Flow Design', 'Failure Handling', 'Technology Choices', 'User Impact Consideration'],
-    data_analysis: ['Metrics Selection', 'Data Interpretation', 'Statistical Understanding', 'A/B Testing Knowledge', 'Data Visualization', 'Actionable Insights'],
-    project_management: ['Timeline Planning', 'Resource Management', 'Risk Assessment', 'Stakeholder Communication', 'Quality Assurance', 'Delivery Focus'],
-    customer_interaction: ['Customer Empathy', 'Research Methods', 'Feedback Integration', 'User Journey Mapping', 'Support and Success', 'Customer Retention'],
-    app_critique: ['Design Analysis', 'User Experience Focus', 'Competitive Awareness', 'Improvement Prioritization', 'Technical Feasibility', 'Business Impact'],
-    machine_learning: ['ML Understanding', 'Data Requirements', 'Model Performance', 'User Experience Integration', 'Ethical Considerations', 'Business Value']
+    product_design: [
+      'User Research Foundation',
+      'Design Innovation',
+      'Technical Feasibility',
+      'User Experience Flow',
+      'Business Alignment',
+      'Iterative Approach',
+    ],
+    product_strategy: [
+      'Strategic Thinking',
+      'Market Understanding',
+      'Competitive Analysis',
+      'Business Model',
+      'Risk Assessment',
+      'Long-term Vision',
+    ],
+    metrics: [
+      'Metrics Selection',
+      'Data Analysis',
+      'Statistical Understanding',
+      'A/B Testing Design',
+      'Actionable Insights',
+      'Business Impact',
+    ],
+    product_improvement: [
+      'Problem Identification',
+      'Root Cause Analysis',
+      'Solution Design',
+      'Implementation Planning',
+      'Success Measurement',
+      'Iterative Improvement',
+    ],
+    root_cause_analysis: [
+      'Problem Definition',
+      'Data Gathering',
+      'Analysis Framework',
+      'Root Cause Identification',
+      'Solution Development',
+      'Prevention Strategy',
+    ],
+    guesstimates: [
+      'Problem Breakdown',
+      'Assumption Making',
+      'Calculation Method',
+      'Reality Checks',
+      'Alternative Approaches',
+      'Confidence Level',
+    ],
+    behavioral: [
+      'STAR Method Structure',
+      'Leadership Impact',
+      'Problem-Solving Skills',
+      'Communication Clarity',
+      'Quantifiable Results',
+      'Self-Awareness',
+    ],
+    technical: [
+      'Technical Understanding',
+      'Engineering Collaboration',
+      'Trade-off Analysis',
+      'Scalability Thinking',
+      'API and Integration Knowledge',
+      'Technical Communication',
+    ],
+    system_design: [
+      'Architecture Understanding',
+      'Scalability Planning',
+      'Data Flow Design',
+      'Failure Handling',
+      'Technology Choices',
+      'User Impact Consideration',
+    ],
+    data_analysis: [
+      'Metrics Selection',
+      'Data Interpretation',
+      'Statistical Understanding',
+      'A/B Testing Knowledge',
+      'Data Visualization',
+      'Actionable Insights',
+    ],
+    project_management: [
+      'Timeline Planning',
+      'Resource Management',
+      'Risk Assessment',
+      'Stakeholder Communication',
+      'Quality Assurance',
+      'Delivery Focus',
+    ],
+    customer_interaction: [
+      'Customer Empathy',
+      'Research Methods',
+      'Feedback Integration',
+      'User Journey Mapping',
+      'Support and Success',
+      'Customer Retention',
+    ],
+    app_critique: [
+      'Design Analysis',
+      'User Experience Focus',
+      'Competitive Awareness',
+      'Improvement Prioritization',
+      'Technical Feasibility',
+      'Business Impact',
+    ],
+    machine_learning: [
+      'ML Understanding',
+      'Data Requirements',
+      'Model Performance',
+      'User Experience Integration',
+      'Ethical Considerations',
+      'Business Value',
+    ],
   };
 
   return dimensions[category] || dimensions.product_strategy;
