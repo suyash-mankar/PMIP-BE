@@ -237,10 +237,10 @@ Remember: You're helping them understand the question better, not solving it for
   ];
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-5-mini', // Faster and cheaper GPT-5 mini for clarifications
+    model: 'gpt-4o', // Using GPT-4o since gpt-5-mini not yet available
     messages: messages,
-    // Note: GPT-5 only supports temperature: 1 (default), so we omit it
-    max_completion_tokens: 300, // GPT-5 uses max_completion_tokens instead of max_tokens
+    temperature: 0.7, // GPT-4o supports custom temperature
+    max_tokens: 300, // GPT-4o uses max_tokens
   });
 
   const response = completion.choices[0].message.content;
