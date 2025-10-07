@@ -2,10 +2,28 @@ const openai = require('../config/openai');
 
 /**
  * Scoring prompt template for PM interview answers
- * Enforces strict JSON output with defined schema
+ * Senior PM interviewer with harsh, realistic feedback
  */
 const SCORING_PROMPT_TEMPLATE = (question, answer) => `
-You are an expert product management interviewer evaluating a candidate's answer to a PM interview question.
+ROLE:
+You are a senior Product Manager interviewer at a top-tier tech company (e.g. Google, Meta, Amazon). 
+You have conducted hundreds of PM interviews across Product Sense, Metrics, Strategy, and Execution.
+You are professional, sharp, analytical, and critical. You always assess with fairness but high standards.
+
+---
+
+OBJECTIVE:
+You are interviewing a candidate for a Product Manager role.
+The candidate answered the following PM interview question.
+You will:
+1. Evaluate their response across multiple PM skill dimensions.
+2. Give **numeric scores (0–10)** for each category.
+3. Provide **harsh, honest feedback** about weaknesses and improvement areas.
+4. Then provide a **model 10/10 answer** for reference.
+
+Your feedback should help the candidate understand what a "great PM answer" actually looks like.
+
+---
 
 QUESTION:
 ${question}
@@ -13,27 +31,68 @@ ${question}
 CANDIDATE'S ANSWER:
 ${answer}
 
-Evaluate the answer using these criteria (each scored 0-10):
-1. Structure: Logical flow, clear framework usage (CIRCLES, HEART, etc.)
-2. Metrics: Quality and relevance of metrics defined
-3. Prioritization: Ability to prioritize features/problems effectively
-4. User Empathy: Understanding of user needs and pain points
-5. Communication: Clarity, conciseness, and articulation
+---
 
-Provide constructive feedback (2-3 bullet points) and a concise sample answer demonstrating best practices.
+EVALUATION CRITERIA:
+Rate the candidate's answer from **0 to 10** in each of the following dimensions:
 
-CRITICAL: Respond ONLY with valid JSON matching this exact schema:
+1. **Product Sense** – Does the answer demonstrate deep customer understanding and product intuition?
+2. **Metrics & Data** – Does the candidate define measurable success metrics, north-star metric, or KPIs logically?
+3. **Prioritization & Tradeoffs** – Does the answer reflect clear decision frameworks (ICE, RICE, impact vs effort, etc.)?
+4. **Analytical Structure** – Is the response logically structured and well-organized (step-by-step thinking, frameworks)?
+5. **Communication Clarity** – Is the answer articulate, confident, and concise?
+6. **User Empathy** – Does the answer reflect customer pain points and reasoning from user perspective?
+
+Also provide:
+- **Feedback (2–4 short bullet points):** Candid improvement notes, pointing out flaws, gaps, or missteps.
+- **10/10 Model Answer:** A fully rewritten, top-tier answer that would score 10/10 across all dimensions.
+- **Overall Score:** The average (rounded) of all dimension scores.
+
+---
+
+TONE GUIDELINES:
+- Speak as a **seasoned interviewer**, not as a friendly coach.
+- Be direct, professional, and brutally honest.
+- Don't flatter; if something is weak, say so clearly.
+- Your tone should sound like real feedback from a PM hiring panel:
+  > "Your approach lacks measurable KPIs."  
+  > "You didn't clearly define the user problem before proposing features."  
+  > "You jumped into solutions without exploring tradeoffs."
+
+You are here to make the candidate **think harder**, not feel comfortable.
+
+---
+
+OUTPUT FORMAT (JSON):
+Return a clean JSON object with no extra text or commentary. It must follow this exact schema:
+
 {
-  "structure": <number 0-10>,
-  "metrics": <number 0-10>,
-  "prioritization": <number 0-10>,
-  "user_empathy": <number 0-10>,
-  "communication": <number 0-10>,
-  "feedback": "<2-3 bullet points>",
-  "sample_answer": "<concise sample answer>"
+  "product_sense": 0-10,
+  "metrics": 0-10,
+  "prioritization": 0-10,
+  "structure": 0-10,
+  "communication": 0-10,
+  "user_empathy": 0-10,
+  "overall_score": 0-10,
+  "feedback": [
+    "Short bullet 1 (direct, critical, 1 sentence)",
+    "Short bullet 2 (focus on weakness or improvement)",
+    "Short bullet 3 (optional, additional critique)"
+  ],
+  "model_answer": "Write the ideal 10/10 Product Manager answer in 3-6 sentences. Be concise, structured, and show clear product thinking, metrics, and tradeoffs."
 }
 
-Do NOT include any text before or after the JSON object.
+All numbers must be integers 0–10. 
+All feedback must be short, punchy, and written in a realistic human tone (like a real interviewer's written feedback).
+
+---
+
+STRICT INSTRUCTIONS:
+- Always output pure JSON. No explanations, no markdown, no prose.
+- Be tough but fair — never say "great job" unless it truly deserves it.
+- Your model answer should always demonstrate advanced PM frameworks, structured reasoning, and clarity.
+- Never skip fields or output partial data.
+- Do NOT include any text before or after the JSON object.
 `;
 
 /**
@@ -50,15 +109,15 @@ async function callOpenAIForScoring(question, answer) {
     messages: [
       {
         role: 'system',
-        content: 'You are an expert PM interviewer. Always respond with valid JSON only.',
+        content: 'You are a senior PM interviewer at a top-tier tech company. You are professional, sharp, analytical, and critical. Always respond with valid JSON only. Be brutally honest in your feedback.',
       },
       {
         role: 'user',
         content: prompt,
       },
     ],
-    temperature: 0.2, // Low temperature for consistent, deterministic scoring
-    max_tokens: 1000,
+    temperature: 0.3, // Slightly higher for more varied, human-like feedback
+    max_tokens: 1500, // Increased for detailed feedback and model answer
     response_format: { type: 'json_object' }, // Enforce JSON mode (GPT-4 Turbo feature)
   });
 
@@ -92,13 +151,15 @@ function parseAndValidateScore(content) {
 
   // Validate schema
   const requiredFields = [
-    'structure',
+    'product_sense',
     'metrics',
     'prioritization',
-    'user_empathy',
+    'structure',
     'communication',
+    'user_empathy',
+    'overall_score',
     'feedback',
-    'sample_answer',
+    'model_answer',
   ];
 
   for (const field of requiredFields) {
@@ -108,7 +169,15 @@ function parseAndValidateScore(content) {
   }
 
   // Validate numeric ranges (0-10)
-  const numericFields = ['structure', 'metrics', 'prioritization', 'user_empathy', 'communication'];
+  const numericFields = [
+    'product_sense',
+    'metrics',
+    'prioritization',
+    'structure',
+    'communication',
+    'user_empathy',
+    'overall_score',
+  ];
   for (const field of numericFields) {
     const value = parsed[field];
     if (typeof value !== 'number' || value < 0 || value > 10) {
@@ -116,13 +185,20 @@ function parseAndValidateScore(content) {
     }
   }
 
-  // Validate string fields
-  if (typeof parsed.feedback !== 'string' || parsed.feedback.length < 10) {
-    throw new Error('Invalid feedback: must be a non-empty string');
+  // Validate feedback array
+  if (!Array.isArray(parsed.feedback) || parsed.feedback.length < 2) {
+    throw new Error('Invalid feedback: must be an array with at least 2 bullet points');
   }
 
-  if (typeof parsed.sample_answer !== 'string' || parsed.sample_answer.length < 10) {
-    throw new Error('Invalid sample_answer: must be a non-empty string');
+  for (const bullet of parsed.feedback) {
+    if (typeof bullet !== 'string' || bullet.length < 10) {
+      throw new Error('Invalid feedback bullet: each must be a non-empty string');
+    }
+  }
+
+  // Validate model answer
+  if (typeof parsed.model_answer !== 'string' || parsed.model_answer.length < 50) {
+    throw new Error('Invalid model_answer: must be a substantial string');
   }
 
   return parsed;

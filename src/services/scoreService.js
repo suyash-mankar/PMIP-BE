@@ -23,27 +23,33 @@ async function scoreSession(session) {
       // Parse and validate
       const scoreData = parseAndValidateScore(content);
 
-      // Calculate total score (average)
-      const totalScore = Math.round(
-        (scoreData.structure +
+      // Use overall_score from AI if available, otherwise calculate average
+      const totalScore = scoreData.overall_score || Math.round(
+        (scoreData.product_sense +
           scoreData.metrics +
           scoreData.prioritization +
-          scoreData.user_empathy +
-          scoreData.communication) /
-          5
+          scoreData.structure +
+          scoreData.communication +
+          scoreData.user_empathy) /
+          6
       );
 
-      // Save to database
+      // Convert feedback array to string with bullet points
+      const feedbackString = Array.isArray(scoreData.feedback)
+        ? scoreData.feedback.map((bullet, index) => `${index + 1}. ${bullet}`).join('\n')
+        : scoreData.feedback;
+
+      // Save to database (mapping new field names to existing schema)
       const score = await prisma.score.create({
         data: {
           sessionId: session.id,
-          structure: scoreData.structure,
+          structure: scoreData.structure, // Analytical structure
           metrics: scoreData.metrics,
           prioritization: scoreData.prioritization,
           userEmpathy: scoreData.user_empathy,
           communication: scoreData.communication,
-          feedback: scoreData.feedback,
-          sampleAnswer: scoreData.sample_answer,
+          feedback: feedbackString,
+          sampleAnswer: scoreData.model_answer,
           totalScore,
           tokensUsed,
           status: 'completed',
