@@ -271,8 +271,8 @@ function getCategoryDimensions(category) {
   );
 }
 
-// Extend CATEGORY_PROMPTS with additional categories
-CATEGORY_PROMPTS.behavioral = (question, answer) => `
+// Extend CATEGORY_SCORING_PROMPTS with additional categories
+CATEGORY_SCORING_PROMPTS.behavioral = (question, answer) => `
 ROLE:
 You are a senior Product Manager with expertise in behavioral interviews and leadership assessment.
 You've conducted hundreds of PM interviews and understand what makes great product leaders.
@@ -297,7 +297,7 @@ SAMPLE STRONG ANSWER:
 
 RESPOND IN VALID JSON FORMAT ONLY.`;
 
-CATEGORY_PROMPTS.technical = (question, answer) => `
+CATEGORY_SCORING_PROMPTS.technical = (question, answer) => `
 ROLE:
 You are a senior Product Manager with deep technical background. You've worked closely with engineering teams
 and understand system architecture, APIs, and technical trade-offs.
@@ -319,7 +319,7 @@ EVALUATION CRITERIA (Rate 0-10 for each):
 
 RESPOND IN VALID JSON FORMAT ONLY.`;
 
-CATEGORY_PROMPTS.system_design = (question, answer) => `
+CATEGORY_SCORING_PROMPTS.system_design = (question, answer) => `
 ROLE:
 You are a senior Product Manager with expertise in system design and architecture.
 You've designed scalable products serving millions of users.
@@ -341,7 +341,7 @@ EVALUATION CRITERIA (Rate 0-10 for each):
 
 RESPOND IN VALID JSON FORMAT ONLY.`;
 
-CATEGORY_PROMPTS.data_analysis = (question, answer) => `
+CATEGORY_SCORING_PROMPTS.data_analysis = (question, answer) => `
 ROLE:
 You are a senior Product Manager with expertise in data analysis and metrics.
 You've built data-driven products and understand analytics frameworks.
@@ -363,7 +363,7 @@ EVALUATION CRITERIA (Rate 0-10 for each):
 
 RESPOND IN VALID JSON FORMAT ONLY.`;
 
-CATEGORY_PROMPTS.project_management = (question, answer) => `
+CATEGORY_SCORING_PROMPTS.project_management = (question, answer) => `
 ROLE:
 You are a senior Product Manager with expertise in project management and delivery.
 You've successfully launched complex products with tight deadlines.
@@ -385,7 +385,7 @@ EVALUATION CRITERIA (Rate 0-10 for each):
 
 RESPOND IN VALID JSON FORMAT ONLY.`;
 
-CATEGORY_PROMPTS.customer_interaction = (question, answer) => `
+CATEGORY_SCORING_PROMPTS.customer_interaction = (question, answer) => `
 ROLE:
 You are a senior Product Manager with expertise in customer research and user engagement.
 You've built products that deeply understand and serve customer needs.
@@ -407,7 +407,7 @@ EVALUATION CRITERIA (Rate 0-10 for each):
 
 RESPOND IN VALID JSON FORMAT ONLY.`;
 
-CATEGORY_PROMPTS.app_critique = (question, answer) => `
+CATEGORY_SCORING_PROMPTS.app_critique = (question, answer) => `
 ROLE:
 You are a senior Product Manager with expertise in app design and user experience.
 You've launched successful mobile and web applications.
@@ -429,7 +429,7 @@ EVALUATION CRITERIA (Rate 0-10 for each):
 
 RESPOND IN VALID JSON FORMAT ONLY.`;
 
-CATEGORY_PROMPTS.machine_learning = (question, answer) => `
+CATEGORY_SCORING_PROMPTS.machine_learning = (question, answer) => `
 ROLE:
 You are a senior Product Manager with expertise in AI/ML products and algorithms.
 You've launched ML-powered features that drive significant business value.
@@ -452,10 +452,10 @@ EVALUATION CRITERIA (Rate 0-10 for each):
 RESPOND IN VALID JSON FORMAT ONLY.`;
 
 function getCategoryScoringPrompt(question, answer, category) {
-  const promptFunction = CATEGORY_PROMPTS[category];
+  const promptFunction = CATEGORY_SCORING_PROMPTS[category];
   return promptFunction
     ? promptFunction(question, answer)
-    : CATEGORY_PROMPTS.product_strategy(question, answer);
+    : CATEGORY_SCORING_PROMPTS.product_strategy(question, answer);
 }
 
 function getCategoryDimensions(category) {
@@ -580,5 +580,5 @@ function getCategoryDimensions(category) {
 module.exports = {
   getCategoryScoringPrompt,
   getCategoryDimensions,
-  CATEGORY_PROMPTS,
+  CATEGORY_SCORING_PROMPTS,
 };
