@@ -17,7 +17,7 @@ const startInterview = async (req, res, next) => {
     });
 
     if (questions.length === 0) {
-      const errorMessage = category 
+      const errorMessage = category
         ? `No questions found for level: ${level || 'any'} and category: ${category}`
         : `No questions found for level: ${level || 'any'}`;
       return res.status(404).json({ error: errorMessage });
@@ -31,11 +31,11 @@ const startInterview = async (req, res, next) => {
       data: {
         userId: req.user.id,
         eventType: 'question_fetched',
-        metadata: JSON.stringify({ 
-          questionId: question.id, 
+        metadata: JSON.stringify({
+          questionId: question.id,
           level: question.level,
           category: question.category,
-          difficulty: question.difficulty 
+          difficulty: question.difficulty,
         }),
       },
     });
@@ -262,9 +262,10 @@ const getCategories = async (req, res, next) => {
     // Format category names for display
     const formattedCategories = categories.map(cat => ({
       value: cat.category,
-      label: cat.category.split('_').map(word => 
-        word.charAt(0).toUpperCase() + word.slice(1)
-      ).join(' '),
+      label: cat.category
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' '),
       count: cat._count.id,
     }));
 
