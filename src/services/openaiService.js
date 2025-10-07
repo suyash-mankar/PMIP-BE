@@ -257,9 +257,12 @@ function parseAndValidateScore(content) {
         )}) or any category format. Received keys: ${Object.keys(parsed).join(', ')}`
       );
     }
-    
+
     // If we have scoring fields but they don't match known formats, log a warning but allow it
-    console.warn('WARNING: Unknown field format detected, using fallback scoring. Fields:', Object.keys(parsed));
+    console.warn(
+      'WARNING: Unknown field format detected, using fallback scoring. Fields:',
+      Object.keys(parsed)
+    );
   }
 
   for (const field of requiredFields) {
@@ -268,17 +271,13 @@ function parseAndValidateScore(content) {
     }
   }
 
-  // Validate numeric ranges (0-10)
-  const numericFields = [
-    'product_sense',
-    'metrics',
-    'prioritization',
-    'structure',
-    'communication',
-    'user_empathy',
-    'overall_score',
-  ];
-  for (const field of numericFields) {
+  // Validate numeric ranges (0-10) - only validate fields that exist
+  // Get all numeric fields (excluding overall_score which is validated separately)
+  const numericFieldsInResponse = Object.keys(parsed).filter(
+    key => typeof parsed[key] === 'number'
+  );
+  
+  for (const field of numericFieldsInResponse) {
     const value = parsed[field];
     if (typeof value !== 'number' || value < 0 || value > 10) {
       throw new Error(`Invalid ${field}: must be a number between 0 and 10`);
