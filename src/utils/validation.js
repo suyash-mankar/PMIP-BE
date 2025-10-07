@@ -12,6 +12,7 @@ const loginSchema = Joi.object({
 
 const startInterviewSchema = Joi.object({
   level: Joi.string().valid('junior', 'mid', 'senior').required(),
+  category: Joi.string().optional().allow(null, ''),
 });
 
 const submitAnswerSchema = Joi.object({
