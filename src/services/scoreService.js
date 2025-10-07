@@ -24,15 +24,17 @@ async function scoreSession(session) {
       const scoreData = parseAndValidateScore(content);
 
       // Use overall_score from AI if available, otherwise calculate average
-      const totalScore = scoreData.overall_score || Math.round(
-        (scoreData.product_sense +
-          scoreData.metrics +
-          scoreData.prioritization +
-          scoreData.structure +
-          scoreData.communication +
-          scoreData.user_empathy) /
-          6
-      );
+      const totalScore =
+        scoreData.overall_score ||
+        Math.round(
+          (scoreData.product_sense +
+            scoreData.metrics +
+            scoreData.prioritization +
+            scoreData.structure +
+            scoreData.communication +
+            scoreData.user_empathy) /
+            6
+        );
 
       // Convert feedback array to string with bullet points
       const feedbackString = Array.isArray(scoreData.feedback)
@@ -68,10 +70,10 @@ async function scoreSession(session) {
           userId: session.userId,
           sessionId: session.id,
           eventType: 'openai_call',
-          metadata: JSON.stringify({ 
-            attempt: attempt + 1, 
+          metadata: JSON.stringify({
+            attempt: attempt + 1,
             success: true,
-            totalScore 
+            totalScore,
           }),
           tokensUsed,
         },
@@ -89,10 +91,10 @@ async function scoreSession(session) {
           userId: session.userId,
           sessionId: session.id,
           eventType: 'error',
-          metadata: JSON.stringify({ 
-            attempt, 
+          metadata: JSON.stringify({
+            attempt,
             error: error.message,
-            context: 'openai_scoring' 
+            context: 'openai_scoring',
           }),
         },
       });

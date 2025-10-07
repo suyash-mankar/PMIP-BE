@@ -9,12 +9,14 @@ Transformed the AI scoring system to provide **harsh, realistic, and professiona
 ## 🚀 **Key Changes**
 
 ### 1. **Senior PM Interviewer Persona**
+
 - **Before**: Generic "expert PM interviewer"
 - **After**: Senior PM at top-tier tech company (Google, Meta, Amazon)
 - Professional, sharp, analytical, and critical
 - Speaks like a real hiring panel member
 
 ### 2. **Harsh, Honest Feedback**
+
 - **Before**: Friendly, encouraging feedback
 - **After**: Brutally honest, direct criticism
 - Points out flaws, gaps, and missteps clearly
@@ -22,7 +24,9 @@ Transformed the AI scoring system to provide **harsh, realistic, and professiona
 - Makes candidates "think harder, not feel comfortable"
 
 ### 3. **Expanded Evaluation Dimensions**
+
 - **Before**: 5 dimensions
+
   - Structure
   - Metrics
   - Prioritization
@@ -39,6 +43,7 @@ Transformed the AI scoring system to provide **harsh, realistic, and professiona
   - **Overall Score** - AI-calculated average
 
 ### 4. **Feedback Format**
+
 - **Before**: Single paragraph string
 - **After**: Array of 2-4 bullet points
   - Each bullet is short, punchy, and critical
@@ -46,6 +51,7 @@ Transformed the AI scoring system to provide **harsh, realistic, and professiona
   - Focuses on weaknesses and improvements
 
 ### 5. **Model Answer**
+
 - **Before**: `sample_answer` - generic example
 - **After**: `model_answer` - ideal 10/10 PM answer
   - 3-6 sentences
@@ -58,20 +64,23 @@ Transformed the AI scoring system to provide **harsh, realistic, and professiona
 ## 📝 **Prompt Structure**
 
 ### **ROLE**
+
 ```
-You are a senior Product Manager interviewer at a top-tier tech company 
-(e.g. Google, Meta, Amazon). You have conducted hundreds of PM interviews 
-across Product Sense, Metrics, Strategy, and Execution. You are professional, 
+You are a senior Product Manager interviewer at a top-tier tech company
+(e.g. Google, Meta, Amazon). You have conducted hundreds of PM interviews
+across Product Sense, Metrics, Strategy, and Execution. You are professional,
 sharp, analytical, and critical. You always assess with fairness but high standards.
 ```
 
 ### **OBJECTIVE**
+
 1. Evaluate candidate's response across 6 PM skill dimensions
 2. Give numeric scores (0–10) for each category
 3. Provide harsh, honest feedback about weaknesses
 4. Provide a model 10/10 answer for reference
 
 ### **EVALUATION CRITERIA** (0-10 each)
+
 1. **Product Sense** – Deep customer understanding, product intuition
 2. **Metrics & Data** – Measurable success metrics, north-star KPIs
 3. **Prioritization & Tradeoffs** – Decision frameworks (ICE, RICE, etc.)
@@ -80,6 +89,7 @@ sharp, analytical, and critical. You always assess with fairness but high standa
 6. **User Empathy** – Customer pain points, user perspective
 
 ### **TONE GUIDELINES**
+
 - Speak as a **seasoned interviewer**, not a friendly coach
 - Be direct, professional, and brutally honest
 - Don't flatter; if something is weak, say so clearly
@@ -89,6 +99,7 @@ sharp, analytical, and critical. You always assess with fairness but high standa
   > "You jumped into solutions without exploring tradeoffs."
 
 ### **OUTPUT FORMAT**
+
 ```json
 {
   "product_sense": 0-10,
@@ -114,12 +125,15 @@ sharp, analytical, and critical. You always assess with fairness but high standa
 ### Example 1: Weak Answer
 
 **User Answer:**
+
 > "I would add more notifications and track engagement to improve retention."
 
 **Old Feedback (Friendly):**
+
 > "Good start! Consider adding more structure to your answer. Think about defining specific metrics and using a framework like CIRCLES to organize your thoughts."
 
 **New Feedback (Harsh):**
+
 ```json
 {
   "product_sense": 5,
@@ -141,12 +155,15 @@ sharp, analytical, and critical. You always assess with fairness but high standa
 ### Example 2: Monetization Question
 
 **User Answer:**
+
 > "I'd build a premium subscription model to increase revenue."
 
 **Old Feedback (Friendly):**
+
 > "Nice idea! To strengthen your answer, consider discussing which users would pay and what value they'd get. Also, define some metrics."
 
 **New Feedback (Harsh):**
+
 ```json
 {
   "product_sense": 6,
@@ -172,6 +189,7 @@ sharp, analytical, and critical. You always assess with fairness but high standa
 ### **Backend Changes**
 
 #### 1. **Updated Prompt Template**
+
 File: `src/services/openaiService.js`
 
 ```javascript
@@ -193,13 +211,15 @@ TONE GUIDELINES:
 ```
 
 #### 2. **Updated OpenAI Configuration**
+
 ```javascript
 const completion = await openai.chat.completions.create({
   model: 'gpt-4-turbo-preview',
   messages: [
     {
       role: 'system',
-      content: 'You are a senior PM interviewer at a top-tier tech company. You are professional, sharp, analytical, and critical. Always respond with valid JSON only. Be brutally honest in your feedback.',
+      content:
+        'You are a senior PM interviewer at a top-tier tech company. You are professional, sharp, analytical, and critical. Always respond with valid JSON only. Be brutally honest in your feedback.',
     },
     {
       role: 'user',
@@ -213,9 +233,11 @@ const completion = await openai.chat.completions.create({
 ```
 
 #### 3. **Updated Validation**
+
 File: `src/services/openaiService.js`
 
 **New Required Fields:**
+
 ```javascript
 const requiredFields = [
   'product_sense',
@@ -231,6 +253,7 @@ const requiredFields = [
 ```
 
 **Feedback Validation:**
+
 ```javascript
 // Validate feedback array
 if (!Array.isArray(parsed.feedback) || parsed.feedback.length < 2) {
@@ -245,6 +268,7 @@ for (const bullet of parsed.feedback) {
 ```
 
 **Model Answer Validation:**
+
 ```javascript
 // Validate model answer
 if (typeof parsed.model_answer !== 'string' || parsed.model_answer.length < 50) {
@@ -253,23 +277,28 @@ if (typeof parsed.model_answer !== 'string' || parsed.model_answer.length < 50) 
 ```
 
 #### 4. **Updated Score Service**
+
 File: `src/services/scoreService.js`
 
 **Total Score Calculation:**
+
 ```javascript
 // Use overall_score from AI if available, otherwise calculate average
-const totalScore = scoreData.overall_score || Math.round(
-  (scoreData.product_sense +
-    scoreData.metrics +
-    scoreData.prioritization +
-    scoreData.structure +
-    scoreData.communication +
-    scoreData.user_empathy) /
-    6
-);
+const totalScore =
+  scoreData.overall_score ||
+  Math.round(
+    (scoreData.product_sense +
+      scoreData.metrics +
+      scoreData.prioritization +
+      scoreData.structure +
+      scoreData.communication +
+      scoreData.user_empathy) /
+      6
+  );
 ```
 
 **Feedback Array to String:**
+
 ```javascript
 // Convert feedback array to string with bullet points
 const feedbackString = Array.isArray(scoreData.feedback)
@@ -278,6 +307,7 @@ const feedbackString = Array.isArray(scoreData.feedback)
 ```
 
 **Database Mapping:**
+
 ```javascript
 const score = await prisma.score.create({
   data: {
@@ -302,35 +332,37 @@ const score = await prisma.score.create({
 
 ### AI Response → Database
 
-| AI Field | Database Field | Notes |
-|----------|----------------|-------|
-| `product_sense` | - | Not stored (used for overall_score) |
-| `metrics` | `metrics` | Direct mapping |
-| `prioritization` | `prioritization` | Direct mapping |
-| `structure` | `structure` | Analytical structure |
-| `communication` | `communication` | Direct mapping |
-| `user_empathy` | `userEmpathy` | Camel case |
-| `overall_score` | `totalScore` | AI-calculated or average |
-| `feedback` (array) | `feedback` (text) | Joined with numbered bullets |
-| `model_answer` | `sampleAnswer` | Renamed for clarity |
+| AI Field           | Database Field    | Notes                               |
+| ------------------ | ----------------- | ----------------------------------- |
+| `product_sense`    | -                 | Not stored (used for overall_score) |
+| `metrics`          | `metrics`         | Direct mapping                      |
+| `prioritization`   | `prioritization`  | Direct mapping                      |
+| `structure`        | `structure`       | Analytical structure                |
+| `communication`    | `communication`   | Direct mapping                      |
+| `user_empathy`     | `userEmpathy`     | Camel case                          |
+| `overall_score`    | `totalScore`      | AI-calculated or average            |
+| `feedback` (array) | `feedback` (text) | Joined with numbered bullets        |
+| `model_answer`     | `sampleAnswer`    | Renamed for clarity                 |
 
 ---
 
 ## 🎯 **Benefits**
 
 ### For Candidates
+
 ✅ **Realistic preparation** - Mirrors actual PM interview feedback  
 ✅ **Identifies weaknesses** - No sugar-coating, clear improvement areas  
 ✅ **Learns PM frameworks** - Model answers demonstrate best practices  
 ✅ **Builds resilience** - Gets used to critical feedback before real interviews  
-✅ **Higher quality practice** - Pushes candidates to think deeper  
+✅ **Higher quality practice** - Pushes candidates to think deeper
 
 ### For Product
+
 ✅ **Differentiation** - More valuable than generic "good job" feedback  
 ✅ **Better outcomes** - Users improve faster with harsh honesty  
 ✅ **Credibility** - Sounds like real tech company interviewers  
 ✅ **Premium positioning** - Justifies higher pricing  
-✅ **Word of mouth** - "This tool doesn't hold back" attracts serious candidates  
+✅ **Word of mouth** - "This tool doesn't hold back" attracts serious candidates
 
 ---
 
@@ -339,6 +371,7 @@ const score = await prisma.score.create({
 ### Test Cases
 
 #### 1. **Weak Answer**
+
 ```javascript
 // Input
 question: "How would you improve Instagram's Stories feature?"
@@ -363,6 +396,7 @@ answer: "I'd add more filters and make it easier to share."
 ```
 
 #### 2. **Strong Answer**
+
 ```javascript
 // Input
 question: "Design a payment feature for WhatsApp."
@@ -391,15 +425,18 @@ answer: "First, I'd identify the primary use case — peer-to-peer payments in e
 ## 💰 **Cost Implications**
 
 ### Token Usage
+
 - **Before**: ~500-700 tokens per scoring
 - **After**: ~800-1200 tokens per scoring (due to longer prompt and responses)
 
 ### OpenAI Costs (GPT-4 Turbo)
+
 - **Before**: ~$0.010-0.015 per scoring
 - **After**: ~$0.015-0.025 per scoring
 - **Increase**: ~50-75% higher cost per scoring
 
 ### Justification
+
 - **Higher value feedback** - Worth the extra cost
 - **Better user outcomes** - Users improve faster
 - **Premium positioning** - Can charge more
@@ -410,6 +447,7 @@ answer: "First, I'd identify the primary use case — peer-to-peer payments in e
 ## 🚀 **Future Enhancements**
 
 ### Phase 2
+
 1. **Difficulty-based harshness** - Adjust tone based on user level
 2. **Follow-up questions** - AI asks probing questions like real interviewer
 3. **Rubric customization** - Users can weight dimensions differently
@@ -417,6 +455,7 @@ answer: "First, I'd identify the primary use case — peer-to-peer payments in e
 5. **Feedback history** - Track improvement over time
 
 ### Phase 3
+
 1. **Voice feedback** - AI delivers feedback verbally
 2. **Live interview mode** - Real-time feedback during conversation
 3. **Peer comparison** - "You scored lower than 75% of candidates"
@@ -427,6 +466,7 @@ answer: "First, I'd identify the primary use case — peer-to-peer payments in e
 ## 📚 **Documentation Updates**
 
 ### API Response Format
+
 ```json
 {
   "message": "Answer scored successfully",
@@ -454,6 +494,7 @@ answer: "First, I'd identify the primary use case — peer-to-peer payments in e
 ## 🎉 **Summary**
 
 ### What Changed
+
 ✅ **Senior PM interviewer persona** - Mimics real tech company interviewers  
 ✅ **Harsh, honest feedback** - No sugar-coating, direct criticism  
 ✅ **6 evaluation dimensions** - Added product_sense, split structure  
@@ -461,9 +502,10 @@ answer: "First, I'd identify the primary use case — peer-to-peer payments in e
 ✅ **Model 10/10 answer** - Shows ideal PM response  
 ✅ **Overall score** - AI-calculated or average  
 ✅ **Higher token budget** - 1500 max_tokens for detailed feedback  
-✅ **Increased temperature** - 0.3 for human-like responses  
+✅ **Increased temperature** - 0.3 for human-like responses
 
 ### Impact
+
 - **More realistic** PM interview preparation
 - **Faster improvement** through harsh honesty
 - **Better credibility** sounds like real interviewers
@@ -475,8 +517,8 @@ answer: "First, I'd identify the primary use case — peer-to-peer payments in e
 **The AI now provides feedback that makes candidates think harder, not feel comfortable!** 🎯💪
 
 **Deployed**:
+
 - Backend: https://github.com/suyash-mankar/PMIP-BE (commit `f6bd7d7`)
 
 **Last Updated**: October 6, 2025  
 **Status**: ✅ Completed & Deployed
-
