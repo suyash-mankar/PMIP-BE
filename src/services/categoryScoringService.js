@@ -1,5 +1,6 @@
 /**
  * Category-specific scoring prompts for different PM interview question types
+ * Based on Exponent's structured interview rubrics and evaluation frameworks
  */
 
 const CATEGORY_SCORING_PROMPTS = {
@@ -61,57 +62,131 @@ RESPOND IN VALID JSON FORMAT ONLY.`,
 
   product_design: (question, answer) => `
 ROLE:
-You are a senior Product Manager with expertise in product design, user experience,
-and feature ideation. You've designed products used by millions of users.
+You are a senior Product Manager at Exponent with expertise in product design, user experience,
+and feature ideation. You've designed products used by millions of users and conduct PM interviews
+using Exponent's structured rubrics.
 
 OBJECTIVE:
-Evaluate this candidate's product design thinking. Focus on user needs, technical feasibility,
-and innovative yet practical solutions.
+Evaluate this candidate's product design thinking using Exponent's comprehensive evaluation framework.
+Focus on user-centricity, innovation, and execution excellence.
 
 QUESTION: ${question}
 CANDIDATE'S ANSWER: ${answer}
 
-EVALUATION CRITERIA (Rate 0-10 for each):
+EXPONENT-STYLE EVALUATION RUBRIC (Rate 0-10 for each):
 
-1. **User Research Foundation** – Do they start with user needs and validate assumptions?
-2. **Design Innovation** – Are their proposed solutions creative and differentiated?
-3. **Technical Feasibility** – Do they consider implementation complexity and constraints?
-4. **User Experience Flow** – Do they think through complete user journeys and edge cases?
-5. **Success Metrics** – Do they define how to measure feature success?
-6. **Iteration Strategy** – Do they plan for testing, feedback, and iteration?
+**1. User-Centricity & Research (0-10)**
+   • 9-10: Demonstrates deep user empathy, identifies specific user personas, validates assumptions with data
+   • 7-8: Shows good user understanding, considers user needs throughout the solution
+   • 5-6: Basic user consideration but lacks depth in research methodology
+   • 3-4: Minimal user focus, assumptions not validated
+   • 0-2: No user consideration or completely user-agnostic approach
 
-Provide:
-- **Feedback (2-4 bullets):** Gaps in their design thinking and user focus
-- **Model Answer:** A comprehensive product design solution
-- **Overall Score:** Average of all dimensions
+**2. Innovation & Creativity (0-10)**
+   • 9-10: Highly creative, differentiated solutions that solve real problems in novel ways
+   • 7-8: Creative approaches with clear differentiation from existing solutions
+   • 5-6: Some innovation but solutions are mostly conventional
+   • 3-4: Limited creativity, largely derivative solutions
+   • 0-2: No innovation, generic or obvious solutions
+
+**3. Technical Feasibility & Implementation (0-10)**
+   • 9-10: Considers technical constraints, scalability, and implementation complexity thoroughly
+   • 7-8: Good technical awareness with realistic implementation planning
+   • 5-6: Basic technical consideration but lacks depth
+   • 3-4: Limited technical awareness, unrealistic assumptions
+   • 0-2: No technical consideration or completely unrealistic approach
+
+**4. User Experience & Journey Mapping (0-10)**
+   • 9-10: Complete user journey consideration with edge cases, accessibility, and seamless flow
+   • 7-8: Good UX thinking with most user scenarios covered
+   • 5-6: Basic UX consideration but misses important scenarios
+   • 3-4: Limited UX thinking, gaps in user experience
+   • 0-2: No UX consideration or poor user experience design
+
+**5. Success Metrics & Measurement (0-10)**
+   • 9-10: Clear, measurable success metrics with baseline data and tracking methodology
+   • 7-8: Good metrics definition with clear measurement approach
+   • 5-6: Basic metrics but lacks measurement methodology
+   • 3-4: Vague metrics or unclear measurement approach
+   • 0-2: No metrics defined or unrealistic measurement
+
+**6. Iteration & Learning Strategy (0-10)**
+   • 9-10: Comprehensive testing strategy, feedback loops, and continuous improvement plan
+   • 7-8: Good iteration planning with testing and feedback mechanisms
+   • 5-6: Basic iteration concept but lacks detailed strategy
+   • 3-4: Limited iteration thinking, no clear learning approach
+   • 0-2: No iteration strategy or one-time solution mindset
+
+EXPONENT-STYLE FEEDBACK REQUIREMENTS:
+- **Strengths (2-3 bullets):** What the candidate did well
+- **Growth Areas (2-3 bullets):** Specific areas for improvement with actionable advice
+- **Model Answer:** A comprehensive 10/10 response following Exponent's framework
+- **Overall Score:** Weighted average (User-Centricity: 25%, Innovation: 20%, Technical: 20%, UX: 15%, Metrics: 10%, Iteration: 10%)
 
 RESPOND IN VALID JSON FORMAT ONLY.`,
 
   metrics: (question, answer) => `
 ROLE:
-You are a senior Product Manager with deep expertise in data analytics, KPI definition,
-and measurement frameworks. You've built analytics systems for multiple products.
+You are a senior Product Manager at Exponent with deep expertise in data analytics, KPI definition,
+and measurement frameworks. You've built analytics systems for multiple products and conduct PM interviews
+using Exponent's structured rubrics.
 
 OBJECTIVE:
-Evaluate this candidate's metrics and measurement thinking. Focus on metric selection,
-measurement methodology, and business impact correlation.
+Evaluate this candidate's metrics and measurement thinking using Exponent's comprehensive evaluation framework.
+Focus on analytical rigor, business impact, and data-driven decision making.
 
 QUESTION: ${question}
 CANDIDATE'S ANSWER: ${answer}
 
-EVALUATION CRITERIA (Rate 0-10 for each):
+EXPONENT-STYLE EVALUATION RUBRIC (Rate 0-10 for each):
 
-1. **Metric Selection** – Do they choose relevant, actionable metrics that align with business goals?
-2. **Measurement Methodology** – Do they explain how metrics would be tracked and calculated?
-3. **Leading vs Lagging** – Do they balance leading indicators with outcome metrics?
-4. **Segmentation Strategy** – Do they consider different user segments and use cases?
-5. **Benchmarking** – Do they establish baselines and compare against industry standards?
-6. **Actionability** – Are the metrics tied to specific actions and decision-making?
+**1. Metrics Selection & Framework (0-10)**
+   • 9-10: Selects highly relevant KPIs with clear hierarchy (North Star → leading → lagging metrics)
+   • 7-8: Good metric selection with clear rationale and some framework thinking
+   • 5-6: Basic metrics chosen but lacks comprehensive framework
+   • 3-4: Limited metric selection, unclear rationale
+   • 0-2: Poor or no metric selection, no framework understanding
 
-Provide:
-- **Feedback (2-4 bullets):** Areas where their metrics strategy could be improved
-- **Model Answer:** A comprehensive metrics and measurement framework
-- **Overall Score:** Average of all dimensions
+**2. Data Analysis & Interpretation (0-10)**
+   • 9-10: Sophisticated analysis with statistical rigor, trend identification, and segmentation
+   • 7-8: Good analytical approach with clear data interpretation
+   • 5-6: Basic analysis but lacks depth in interpretation
+   • 3-4: Limited analytical thinking, surface-level insights
+   • 0-2: No analytical approach or misinterpretation of data
+
+**3. Statistical Understanding (0-10)**
+   • 9-10: Demonstrates strong statistical knowledge, understands correlation vs causation, confidence intervals
+   • 7-8: Good statistical awareness with proper interpretation of results
+   • 5-6: Basic statistical understanding but some misconceptions
+   • 3-4: Limited statistical knowledge, potential for misinterpretation
+   • 0-2: Poor statistical understanding or incorrect assumptions
+
+**4. A/B Testing & Experimentation (0-10)**
+   • 9-10: Comprehensive experiment design with proper controls, sample size, and statistical power
+   • 7-8: Good experimental thinking with most design elements considered
+   • 5-6: Basic experiment concept but gaps in methodology
+   • 3-4: Limited experimentation knowledge, flawed design
+   • 0-2: No experimentation understanding or poor experimental design
+
+**5. Actionable Insights & Decision Making (0-10)**
+   • 9-10: Clear translation of data into specific, actionable product decisions with clear next steps
+   • 7-8: Good connection between insights and actions with some specificity
+   • 5-6: Basic insight-to-action connection but lacks specificity
+   • 3-4: Limited actionable insights, vague recommendations
+   • 0-2: No actionable insights or poor decision-making framework
+
+**6. Business Impact & ROI (0-10)**
+   • 9-10: Clear connection between metrics and business outcomes with quantified impact
+   • 7-8: Good understanding of business impact with some quantification
+   • 5-6: Basic business awareness but lacks quantified impact
+   • 3-4: Limited business understanding, unclear impact
+   • 0-2: No business impact consideration or poor ROI understanding
+
+EXPONENT-STYLE FEEDBACK REQUIREMENTS:
+- **Strengths (2-3 bullets):** What the candidate did well in their analytical approach
+- **Growth Areas (2-3 bullets):** Specific areas for improvement with actionable advice
+- **Model Answer:** A comprehensive 10/10 response following Exponent's framework
+- **Overall Score:** Weighted average (Metrics Selection: 20%, Data Analysis: 25%, Statistical: 15%, A/B Testing: 15%, Insights: 15%, Business Impact: 10%)
 
 RESPOND IN VALID JSON FORMAT ONLY.`,
 
