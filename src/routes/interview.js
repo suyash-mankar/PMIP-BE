@@ -6,6 +6,7 @@ const {
   clarify,
   getSessions,
   getSessionById,
+  getCategories,
 } = require('../controllers/interviewController');
 const { authMiddleware } = require('../middlewares/auth');
 const { scoringLimiter } = require('../middlewares/rateLimiter');
@@ -28,5 +29,6 @@ router.post('/clarify', authMiddleware, clarify);
 
 router.get('/sessions', authMiddleware, getSessions);
 router.get('/sessions/:id', authMiddleware, getSessionById);
+router.get('/categories', authMiddleware, getCategories);
 
 module.exports = router;

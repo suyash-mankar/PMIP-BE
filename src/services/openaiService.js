@@ -101,8 +101,8 @@ STRICT INSTRUCTIONS:
  * @param {string} answer - The candidate's answer
  * @returns {Promise<Object>} Parsed score object
  */
-async function callOpenAIForScoring(question, answer) {
-  const prompt = SCORING_PROMPT_TEMPLATE(question, answer);
+async function callOpenAIForScoring(question, answer, customPrompt = null) {
+  const prompt = customPrompt || SCORING_PROMPT_TEMPLATE(question, answer);
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o', // Using GPT-4o - proven fast and reliable for PM scoring

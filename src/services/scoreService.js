@@ -1,5 +1,6 @@
 const prisma = require('../config/database');
 const { callOpenAIForScoring, parseAndValidateScore } = require('./openaiService');
+const { getCategoryScoringPrompt } = require('./categoryScoringService');
 
 const MAX_RETRIES = 2;
 
@@ -14,10 +15,18 @@ async function scoreSession(session) {
 
   while (attempt <= MAX_RETRIES) {
     try {
-      // Call OpenAI
+      // Get category-specific scoring prompt
+      const scoringPrompt = getCategoryScoringPrompt(
+        session.question.text,
+        session.answerText,
+        session.question.category
+      );
+
+      // Call OpenAI with category-specific prompt
       const { content, tokensUsed } = await callOpenAIForScoring(
         session.question.text,
-        session.answerText
+        session.answerText,
+        scoringPrompt
       );
 
       // Parse and validate

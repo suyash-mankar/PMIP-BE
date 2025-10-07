@@ -4,15 +4,23 @@ const { callOpenAIForClarification } = require('../services/openaiService');
 
 const startInterview = async (req, res, next) => {
   try {
-    const { level } = req.body;
+    const { level, category } = req.body;
 
-    // Get random question for the specified level
+    // Build query conditions
+    const whereClause = {};
+    if (level) whereClause.level = level;
+    if (category) whereClause.category = category;
+
+    // Get random question for the specified criteria
     const questions = await prisma.question.findMany({
-      where: { level },
+      where: whereClause,
     });
 
     if (questions.length === 0) {
-      return res.status(404).json({ error: 'No questions found for this level' });
+      const errorMessage = category 
+        ? `No questions found for level: ${level || 'any'} and category: ${category}`
+        : `No questions found for level: ${level || 'any'}`;
+      return res.status(404).json({ error: errorMessage });
     }
 
     const randomIndex = Math.floor(Math.random() * questions.length);
@@ -23,7 +31,12 @@ const startInterview = async (req, res, next) => {
       data: {
         userId: req.user.id,
         eventType: 'question_fetched',
-        metadata: JSON.stringify({ questionId: question.id, level }),
+        metadata: JSON.stringify({ 
+          questionId: question.id, 
+          level: question.level,
+          category: question.category,
+          difficulty: question.difficulty 
+        }),
       },
     });
 
@@ -32,6 +45,8 @@ const startInterview = async (req, res, next) => {
       text: question.text,
       category: question.category,
       level: question.level,
+      difficulty: question.difficulty,
+      tags: question.tags ? JSON.parse(question.tags) : [],
     });
   } catch (error) {
     next(error);
@@ -229,6 +244,38 @@ const clarify = async (req, res, next) => {
   }
 };
 
+const getCategories = async (req, res, next) => {
+  try {
+    // Get unique categories with question counts
+    const categories = await prisma.question.groupBy({
+      by: ['category'],
+      _count: {
+        id: true,
+      },
+      orderBy: {
+        _count: {
+          id: 'desc',
+        },
+      },
+    });
+
+    // Format category names for display
+    const formattedCategories = categories.map(cat => ({
+      value: cat.category,
+      label: cat.category.split('_').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1)
+      ).join(' '),
+      count: cat._count.id,
+    }));
+
+    res.json({
+      categories: formattedCategories,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   startInterview,
   submitAnswer,
@@ -236,4 +283,5 @@ module.exports = {
   clarify,
   getSessions,
   getSessionById,
+  getCategories,
 };
