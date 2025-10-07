@@ -153,18 +153,31 @@ function parseAndValidateScore(content) {
     throw new Error(`Failed to parse JSON: ${err.message}`);
   }
 
-  // Validate schema
+  // Validate schema - handle both old and new field names
   const requiredFields = [
-    'product_sense',
-    'metrics',
-    'prioritization',
-    'structure',
-    'communication',
-    'user_empathy',
     'overall_score',
     'feedback',
     'model_answer',
   ];
+
+  // Check for old field format
+  const oldFields = ['product_sense', 'metrics', 'prioritization', 'structure', 'communication', 'user_empathy'];
+  const hasOldFields = oldFields.every(field => field in parsed);
+
+  // Check for new Exponent-style field format
+  const newFields = ['user_centricity', 'innovation', 'technical_feasibility', 'user_experience', 'success_metrics', 'iteration'];
+  const hasNewFields = newFields.every(field => field in parsed);
+
+  if (!hasOldFields && !hasNewFields) {
+    // Try to find any scoring fields
+    const scoringFields = Object.keys(parsed).filter(key => 
+      typeof parsed[key] === 'number' && key !== 'overall_score'
+    );
+    
+    if (scoringFields.length === 0) {
+      throw new Error(`Missing required scoring fields. Expected either old format (${oldFields.join(', ')}) or new format (${newFields.join(', ')})`);
+    }
+  }
 
   for (const field of requiredFields) {
     if (!(field in parsed)) {

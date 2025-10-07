@@ -33,32 +33,63 @@ async function scoreSession(session) {
       const scoreData = parseAndValidateScore(content);
 
       // Use overall_score from AI if available, otherwise calculate average
-      const totalScore =
-        scoreData.overall_score ||
-        Math.round(
-          (scoreData.product_sense +
-            scoreData.metrics +
-            scoreData.prioritization +
-            scoreData.structure +
-            scoreData.communication +
-            scoreData.user_empathy) /
-            6
-        );
+      let totalScore = scoreData.overall_score;
+      
+      if (!totalScore) {
+        // Handle old field format
+        if (scoreData.product_sense && scoreData.metrics && scoreData.prioritization) {
+          totalScore = Math.round(
+            (scoreData.product_sense +
+              scoreData.metrics +
+              scoreData.prioritization +
+              scoreData.structure +
+              scoreData.communication +
+              scoreData.user_empathy) /
+              6
+          );
+        }
+        // Handle new Exponent-style field format
+        else if (scoreData.user_centricity && scoreData.innovation && scoreData.technical_feasibility) {
+          // Use weighted average as specified in the rubric
+          totalScore = Math.round(
+            (scoreData.user_centricity * 0.25 +
+              scoreData.innovation * 0.20 +
+              scoreData.technical_feasibility * 0.20 +
+              scoreData.user_experience * 0.15 +
+              scoreData.success_metrics * 0.10 +
+              scoreData.iteration * 0.10)
+          );
+        }
+        // Fallback: calculate average of all numeric fields (excluding overall_score)
+        else {
+          const scoringFields = Object.keys(scoreData).filter(key => 
+            typeof scoreData[key] === 'number' && key !== 'overall_score'
+          );
+          if (scoringFields.length > 0) {
+            const sum = scoringFields.reduce((acc, field) => acc + scoreData[field], 0);
+            totalScore = Math.round(sum / scoringFields.length);
+          } else {
+            totalScore = 0;
+          }
+        }
+      }
 
       // Convert feedback array to string with bullet points
       const feedbackString = Array.isArray(scoreData.feedback)
         ? scoreData.feedback.map((bullet, index) => `${index + 1}. ${bullet}`).join('\n')
         : scoreData.feedback;
 
-      // Save to database (mapping new field names to existing schema)
+      // Save to database (mapping field names to existing schema)
       const score = await prisma.score.create({
         data: {
           sessionId: session.id,
-          structure: scoreData.structure, // Analytical structure
-          metrics: scoreData.metrics,
-          prioritization: scoreData.prioritization,
-          userEmpathy: scoreData.user_empathy,
-          communication: scoreData.communication,
+          // Map old field format
+          structure: scoreData.structure || scoreData.user_centricity || 0,
+          metrics: scoreData.metrics || scoreData.success_metrics || 0,
+          prioritization: scoreData.prioritization || scoreData.innovation || 0,
+          userEmpathy: scoreData.user_empathy || scoreData.user_experience || 0,
+          communication: scoreData.communication || scoreData.technical_feasibility || 0,
+          // For new format, we'll store additional fields in a JSON field if needed
           feedback: feedbackString,
           sampleAnswer: scoreData.model_answer,
           totalScore,
