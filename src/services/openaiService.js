@@ -153,6 +153,10 @@ function parseAndValidateScore(content) {
     throw new Error(`Failed to parse JSON: ${err.message}`);
   }
 
+  // Debug logging
+  console.log('AI Response - Keys returned:', Object.keys(parsed));
+  console.log('AI Response - Full object:', JSON.stringify(parsed, null, 2));
+
   // Validate schema - handle both old and new field names
   const requiredFields = ['overall_score', 'feedback', 'model_answer'];
 
@@ -230,19 +234,32 @@ function parseAndValidateScore(content) {
   ];
   const hasGuesstimatesFields = guesstimatesFields.every(field => field in parsed);
 
-  if (!hasOldFields && !hasProductDesignFields && !hasMetricsFields && 
-      !hasRootCauseFields && !hasProductImprovementFields && 
-      !hasProductStrategyFields && !hasGuesstimatesFields) {
+  if (
+    !hasOldFields &&
+    !hasProductDesignFields &&
+    !hasMetricsFields &&
+    !hasRootCauseFields &&
+    !hasProductImprovementFields &&
+    !hasProductStrategyFields &&
+    !hasGuesstimatesFields
+  ) {
     // Try to find any scoring fields
     const scoringFields = Object.keys(parsed).filter(
       key => typeof parsed[key] === 'number' && key !== 'overall_score'
     );
 
     if (scoringFields.length === 0) {
+      console.error('VALIDATION ERROR - Received keys:', Object.keys(parsed));
+      console.error('VALIDATION ERROR - Full response:', JSON.stringify(parsed, null, 2));
       throw new Error(
-        `Missing required scoring fields. Expected one of: old format (${oldFields.join(', ')}) or any category format`
+        `Missing required scoring fields. Expected one of: old format (${oldFields.join(
+          ', '
+        )}) or any category format. Received keys: ${Object.keys(parsed).join(', ')}`
       );
     }
+    
+    // If we have scoring fields but they don't match known formats, log a warning but allow it
+    console.warn('WARNING: Unknown field format detected, using fallback scoring. Fields:', Object.keys(parsed));
   }
 
   for (const field of requiredFields) {

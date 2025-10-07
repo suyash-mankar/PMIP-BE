@@ -72,12 +72,12 @@ async function scoreSession(session) {
         ) {
           // Use weighted average as specified in the metrics rubric
           totalScore = Math.round(
-            scoreData.metrics_selection * 0.20 +
+            scoreData.metrics_selection * 0.2 +
               scoreData.data_analysis * 0.25 +
               scoreData.statistical_understanding * 0.15 +
               scoreData.ab_testing * 0.15 +
               scoreData.actionable_insights * 0.15 +
-              scoreData.business_impact * 0.10
+              scoreData.business_impact * 0.1
           );
         }
         // Handle root cause analysis format
@@ -172,11 +172,19 @@ async function scoreSession(session) {
         data: {
           sessionId: session.id,
           // Map old field format
-          structure: scoreData.structure || scoreData.user_centricity || scoreData.data_analysis || 0,
-          metrics: scoreData.metrics || scoreData.success_metrics || scoreData.metrics_selection || 0,
-          prioritization: scoreData.prioritization || scoreData.innovation || scoreData.actionable_insights || 0,
-          userEmpathy: scoreData.user_empathy || scoreData.user_experience || scoreData.business_impact || 0,
-          communication: scoreData.communication || scoreData.technical_feasibility || scoreData.statistical_understanding || 0,
+          structure:
+            scoreData.structure || scoreData.user_centricity || scoreData.data_analysis || 0,
+          metrics:
+            scoreData.metrics || scoreData.success_metrics || scoreData.metrics_selection || 0,
+          prioritization:
+            scoreData.prioritization || scoreData.innovation || scoreData.actionable_insights || 0,
+          userEmpathy:
+            scoreData.user_empathy || scoreData.user_experience || scoreData.business_impact || 0,
+          communication:
+            scoreData.communication ||
+            scoreData.technical_feasibility ||
+            scoreData.statistical_understanding ||
+            0,
           // For new format, we'll store additional fields in a JSON field if needed
           feedback: feedbackString,
           sampleAnswer: scoreData.model_answer,
