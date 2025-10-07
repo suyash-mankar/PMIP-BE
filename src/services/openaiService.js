@@ -276,7 +276,7 @@ function parseAndValidateScore(content) {
   const numericFieldsInResponse = Object.keys(parsed).filter(
     key => typeof parsed[key] === 'number'
   );
-  
+
   for (const field of numericFieldsInResponse) {
     const value = parsed[field];
     if (typeof value !== 'number' || value < 0 || value > 10) {
