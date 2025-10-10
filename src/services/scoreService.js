@@ -165,7 +165,10 @@ async function scoreSession(session) {
       // Format feedback based on response format
       let feedbackString;
 
-      if (scoreData.summary && scoreData.gaps && scoreData.improved_framework) {
+      if (scoreData.feedback_text && scoreData.reframed_answer && scoreData.brutal_truth) {
+        // ChatGPT format - use the formatted feedback_text directly
+        feedbackString = scoreData.feedback_text;
+      } else if (scoreData.summary && scoreData.gaps && scoreData.improved_framework) {
         // New 5-part format
         const summarySection = scoreData.summary ? '📝 SUMMARY:\n' + scoreData.summary : '';
 
@@ -232,7 +235,7 @@ async function scoreSession(session) {
             0,
           // For new format, we'll store additional fields in a JSON field if needed
           feedback: feedbackString,
-          sampleAnswer: scoreData.model_answer,
+          sampleAnswer: scoreData.model_answer || scoreData.reframed_answer,
           totalScore,
           tokensUsed,
           status: 'completed',

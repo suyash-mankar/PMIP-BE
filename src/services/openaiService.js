@@ -5,18 +5,11 @@ const openai = require('../config/openai');
  * Based on structured 5-part evaluation framework
  */
 const SCORING_PROMPT_TEMPLATE = (question, answer) => `
-🎯 ROLE:
-You are a senior Product Manager at a top tech company (like Google, Swiggy, or Razorpay), interviewing a candidate for a PM role.
-You're experienced in evaluating product design, strategy, metrics, guesstimates, root cause analysis, and execution questions.
-
-🎯 TASK:
-Evaluate the candidate's answer critically and comprehensively — just like an interviewer would — in a structured, 5-part format.
-Be brutally honest, concise, and specific about what's missing or weak.
-No sugarcoating. You are a tough but fair mentor.
+You are a senior Product Manager interviewer at a top tech company (Google, Meta, Amazon, Stripe).
+You've conducted 500+ PM interviews and specialize in product strategy, design, and execution.
+Your feedback style is direct, structured, and actionable — like giving real interview debrief notes.
 
 ---
-
-📋 INPUT:
 
 QUESTION:
 ${question}
@@ -26,78 +19,76 @@ ${answer}
 
 ---
 
-📊 OUTPUT STRUCTURE (5 PARTS):
+YOUR TASK:
+Provide a **brutal interview-style review** with the following structure:
 
-1️⃣ SUMMARY OF UNDERSTANDING (2–3 lines)
-Briefly summarize what the candidate is trying to say — to show you understood their intent.
+## ✅ STRENGTHS IN YOUR ANSWER
+- What they did well (be specific, cite examples from their answer)
+- Good frameworks or approaches they used
+- Areas where they showed strong PM thinking
+- Use right arrows (→) to show cause-effect relationships
 
-2️⃣ EVALUATION (Score out of 10)
-Rate the answer on:
-- Clarity of thought
-- Depth of analysis
-- User-centricity
-- Structure & flow
-- Creativity & practicality of solution
+## ⚠️ AREAS TO IMPROVE
+For each weakness:
+1. State the issue clearly with specific examples
+2. Explain WHY it's a problem in a real interview
+3. Show what they should have done instead
+4. Use bold text for emphasis and quotation marks for specific phrases
 
-3️⃣ STRENGTHS (2–3 bullet points)
-Highlight what the candidate did well — frameworks used, insights, structure, user empathy, quantification, etc.
-Use ✅ prefix for each strength.
+## 🔥 REFRAMED "PASS-LEVEL" ANSWER (shorter & sharper)
+Provide a complete rewrite showing best practices:
+- **User segment →** [specific target user]
+- **Problem →** [clear problem statement]
+- **Solutions (prioritized):** [bullet points with specific solutions]
+- **MVP →** [focused first step]
+- **Metrics:** [NSM and supporting metrics]
+- **Guardrail:** [key constraint/risk]
 
-4️⃣ GAPS / WHAT'S MISSING (4–6 bullet points)
-Be blunt about what was weak — missing problem framing, vague success metrics, no prioritization logic, lack of user persona, etc.
-If they jumped to features too fast, call it out.
-Use ⚠️ prefix for each gap.
-
-5️⃣ SUGGESTED IMPROVED FRAMEWORK (short, reusable)
-Give a mini-framework or restructured outline for how they should've answered this kind of question.
-Use 💡 prefix.
-Then provide a rewritten answer in 3–5 bullet points demonstrating what a "9/10" answer would look like.
+## ⚡ BRUTAL TRUTH
+One sentence summarizing: "Your raw answer = X (reason). Reframed = Y (reason)."
 
 ---
 
 OUTPUT FORMAT (JSON):
 {
-  "clarity": 0-10,
-  "depth": 0-10,
-  "user_centricity": 0-10,
-  "structure": 0-10,
-  "creativity": 0-10,
   "overall_score": 0-10,
-  "summary": "2-3 line summary of what the candidate is trying to say",
+  "feedback_text": "Complete feedback in ChatGPT format with markdown formatting, emojis, arrows, and bold text. Include all sections: introduction, strengths, areas to improve, reframed answer, and brutal truth. Use proper markdown: **bold**, • bullets, → arrows, emojis ✅⚠️🔥⚡",
   "strengths": [
-    "What they did well (framework used, insights, etc.)",
-    "Another strength",
-    "Third strength (if applicable)"
+    "Specific strength with example from answer",
+    "Another strength with reasoning",
+    "Third strength (optional)"
   ],
-  "gaps": [
-    "Missing problem framing",
-    "Vague success metrics",
-    "No prioritization logic",
-    "Lack of user persona",
-    "Jumped to features too early",
-    "Other specific gaps"
+  "weaknesses": [
+    "Issue → Why it's bad → What to do instead",
+    "Another detailed weakness with explanation",
+    "Third weakness with actionable fix",
+    "Fourth weakness (if applicable)"
   ],
-  "improved_framework": "Mini-framework for this question type (e.g., Clarify → Define User & Goal → Identify Pain Points → Ideate → Prioritize → Metrics → Risks)",
-  "model_answer": "Rewritten 9/10 answer in 3-5 bullet points showing what excellence looks like"
+  "reframed_answer": "Complete reframed answer with **User segment →**, **Problem →**, **Solutions:**, **MVP →**, **Metrics:**, **Guardrail:** structure",
+  "brutal_truth": "One sentence: 'Your raw answer = X. Reframed = Y.'",
+  "model_answer": "Alternative top-tier 10/10 answer (3-5 sentences) showing advanced PM thinking"
 }
 
 ---
 
-🎨 TONE GUIDELINES:
-- Be critical but encouraging ("strong instincts, weak structure" > "bad answer")
-- Keep total feedback under 400 words
-- Always include numeric scores
-- Do not be generic — tailor feedback to their actual content
-- Use clear, direct language
-- Point out specific examples from their answer
+TONE & STYLE:
+- Write like you're giving real interview debrief notes
+- Be brutally honest but constructive
+- Use "→" arrows to show cause-effect
+- Use specific examples from their answer
+- Compare weak parts to strong alternatives
+- Don't sugarcoat, but always show the path forward
+- Use emojis: ✅ ⚠️ 🔥 ⚡
+- Use bold text for emphasis: **text**
+- Use bullet points: • item
 
-🚨 STRICT RULES:
+STRICT RULES:
 - Always output pure JSON only
-- No markdown formatting inside JSON strings
 - Be harsh on weak answers (scores 3-5), generous on strong ones (8-10)
-- Gaps should be specific (not "lacks detail" but "no success metrics defined")
-- Model answer must be concrete with frameworks and numbers
-- Overall score = average of 5 dimensions, rounded
+- Never say "great job" unless truly exceptional
+- Show them exactly what a 10/10 answer looks like
+- Use proper markdown formatting in feedback_text
+- Include all sections: introduction, strengths, areas to improve, reframed answer, brutal truth
 `;
 
 /**
@@ -174,10 +165,13 @@ function parseAndValidateScore(content) {
   const hasEnhancedFormat =
     'strengths' in parsed && 'weaknesses' in parsed && 'pass_level_answer' in parsed;
   const hasOldFormat = 'feedback' in parsed && 'model_answer' in parsed;
+  const hasChatGPTFormat = 'feedback_text' in parsed && 'reframed_answer' in parsed && 'brutal_truth' in parsed;
 
   const requiredFields = ['overall_score'];
 
-  if (has5PartFormat) {
+  if (hasChatGPTFormat) {
+    requiredFields.push('feedback_text', 'reframed_answer', 'brutal_truth');
+  } else if (has5PartFormat) {
     requiredFields.push('summary', 'strengths', 'gaps', 'improved_framework', 'model_answer');
   } else if (hasEnhancedFormat) {
     requiredFields.push(
@@ -279,7 +273,8 @@ function parseAndValidateScore(content) {
     !hasRootCauseFields &&
     !hasProductImprovementFields &&
     !hasProductStrategyFields &&
-    !hasGuesstimatesFields
+    !hasGuesstimatesFields &&
+    !hasChatGPTFormat
   ) {
     // Try to find any scoring fields
     const scoringFields = Object.keys(parsed).filter(
@@ -322,8 +317,19 @@ function parseAndValidateScore(content) {
     }
   }
 
-  // Validate feedback arrays based on format
-  if (has5PartFormat) {
+  // Validate feedback based on format
+  if (hasChatGPTFormat) {
+    // ChatGPT format validation
+    if (typeof parsed.feedback_text !== 'string' || parsed.feedback_text.length < 50) {
+      console.warn('Warning: feedback_text should be substantial, but allowing it');
+    }
+    if (typeof parsed.reframed_answer !== 'string' || parsed.reframed_answer.length < 20) {
+      console.warn('Warning: reframed_answer should be substantial, but allowing it');
+    }
+    if (typeof parsed.brutal_truth !== 'string' || parsed.brutal_truth.length < 10) {
+      console.warn('Warning: brutal_truth should be meaningful, but allowing it');
+    }
+  } else if (has5PartFormat) {
     // New 5-part format validation
     if (!Array.isArray(parsed.strengths) || parsed.strengths.length < 1) {
       console.warn('Warning: strengths should have at least 1 item, but allowing it');
