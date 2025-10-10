@@ -101,7 +101,7 @@ async function callOpenAIForScoring(question, answer, customPrompt = null) {
   const prompt = customPrompt || SCORING_PROMPT_TEMPLATE(question, answer);
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o', // Using GPT-4o - proven fast and reliable for PM scoring
+    model: 'gpt-5', // Using GPT-5 for detailed, comprehensive feedback like ChatGPT UI
     messages: [
       {
         role: 'system',
@@ -165,7 +165,8 @@ function parseAndValidateScore(content) {
   const hasEnhancedFormat =
     'strengths' in parsed && 'weaknesses' in parsed && 'pass_level_answer' in parsed;
   const hasOldFormat = 'feedback' in parsed && 'model_answer' in parsed;
-  const hasChatGPTFormat = 'feedback_text' in parsed && 'reframed_answer' in parsed && 'brutal_truth' in parsed;
+  const hasChatGPTFormat =
+    'feedback_text' in parsed && 'reframed_answer' in parsed && 'brutal_truth' in parsed;
 
   const requiredFields = ['overall_score'];
 
@@ -398,7 +399,7 @@ Remember: You're helping them understand the question better, not solving it for
   ];
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o', // Using GPT-4o for clarifications
+    model: 'gpt-5', // Using GPT-5 for detailed clarifications like ChatGPT UI
     messages: messages,
     temperature: 0.7, // Natural conversation temperature
     // Removed max_tokens limit - allow full conversational responses
