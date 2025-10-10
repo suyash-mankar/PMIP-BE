@@ -172,13 +172,20 @@ function parseAndValidateScore(content) {
   // Validate schema - handle both old and new field names
   // New enhanced format requires: strengths, weaknesses, pass_level_answer, brutal_truth
   // Old format requires: feedback, model_answer
-  const hasNewFormat = 'strengths' in parsed && 'weaknesses' in parsed && 'pass_level_answer' in parsed;
+  const hasNewFormat =
+    'strengths' in parsed && 'weaknesses' in parsed && 'pass_level_answer' in parsed;
   const hasOldFormat = 'feedback' in parsed && 'model_answer' in parsed;
-  
+
   const requiredFields = ['overall_score'];
-  
+
   if (hasNewFormat) {
-    requiredFields.push('strengths', 'weaknesses', 'pass_level_answer', 'brutal_truth', 'model_answer');
+    requiredFields.push(
+      'strengths',
+      'weaknesses',
+      'pass_level_answer',
+      'brutal_truth',
+      'model_answer'
+    );
   } else if (hasOldFormat) {
     requiredFields.push('feedback', 'model_answer');
   } else {

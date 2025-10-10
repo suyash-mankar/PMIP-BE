@@ -1,9 +1,116 @@
 /**
  * Category-specific scoring prompts for different PM interview question types
- * Based on Exponent's structured interview rubrics and evaluation frameworks
+ * Enhanced with detailed strengths/weaknesses breakdown like ChatGPT feedback style
  */
 
+/**
+ * Generate enhanced feedback format prompt for any category
+ */
+function generateEnhancedPrompt(categoryName, categoryFocus, evaluationDimensions, dimensionNames) {
+  return (question, answer) => `
+ROLE:
+You are a senior Product Manager interviewer at a top-tier tech company (Google, Meta, Amazon, Stripe).
+You've conducted 500+ PM interviews and specialize in ${categoryFocus}.
+Your feedback style is direct, structured, and actionable — like giving real interview debrief notes.
+
+---
+
+QUESTION:
+${question}
+
+CANDIDATE'S ANSWER:
+${answer}
+
+---
+
+YOUR TASK:
+Provide a **brutal interview-style review** for this ${categoryName} question with the following structure:
+
+## ✅ STRENGTHS (2-4 bullets)
+- What they did well (be specific, cite examples from their answer)
+- Good frameworks or approaches they used
+- Areas where they showed strong PM thinking
+
+## ❌ WEAKNESSES (4-6 bullets with detailed explanations)
+For each weakness:
+1. State the issue clearly
+2. Explain WHY it's a problem in a real interview
+3. Show what they should have done instead
+
+Examples of good weakness feedback:
+- "Persona too broad → '27-year-old professional' is generic. Sharper: 'Busy consultant commuting daily, uses Spotify for music but defaults to YouTube for podcasts.'"
+- "NSM is weak → 'Time spent' is vanity metric. Better: '% of sessions with ≥80% listen-through' (shows real engagement)."
+- "MVP confused → Exclusive partnerships = business deal, not product experiment. Stick to product-led features."
+
+## 🚀 PASS-LEVEL ANSWER (Reframed)
+Provide a complete rewrite showing best practices for ${categoryName}:
+${evaluationDimensions}
+
+## ⚡ BRUTAL TRUTH
+One sentence summarizing: "Your raw answer = X (reason). Reframed = Y (reason)."
+Example: "Your raw answer = borderline pass (good instincts but feature-dumpy + weak metrics). Reframed = solid pass (focused MVP, outcome-driven NSM)."
+
+---
+
+SCORING (0-10 for each):
+${dimensionNames.map((dim, i) => `${i + 1}. **${dim}**`).join('\n')}
+
+**Overall Score** = Average of all dimensions (rounded)
+
+---
+
+OUTPUT FORMAT (JSON):
+{
+  ${dimensionNames.map(dim => `"${dim.toLowerCase().replace(/[^a-z0-9]+/g, '_')}": 0-10`).join(',\n  ')},
+  "overall_score": 0-10,
+  "strengths": [
+    "Specific strength with example from answer",
+    "Another strength with reasoning",
+    "Third strength (optional)"
+  ],
+  "weaknesses": [
+    "Issue → Why it's bad → What to do instead",
+    "Another detailed weakness with explanation",
+    "Third weakness with actionable fix",
+    "Fourth weakness (if applicable)"
+  ],
+  "pass_level_answer": "Complete reframed answer with best practices. Should be 4-8 sentences, well-structured.",
+  "brutal_truth": "One sentence: 'Your raw answer = X. Reframed = Y.'",
+  "model_answer": "Alternative top-tier 10/10 answer (3-5 sentences) showing advanced PM thinking."
+}
+
+---
+
+TONE & STYLE:
+- Write like you're giving real interview debrief notes
+- Be brutally honest but constructive
+- Use "→" arrows to show cause-effect
+- Use specific examples from their answer
+- Compare weak parts to strong alternatives
+- Don't sugarcoat, but always show the path forward
+
+STRICT RULES:
+- Always output pure JSON only
+- Be harsh on weak answers (scores 3-5), generous on strong ones (8-10)
+- Never say "great job" unless truly exceptional
+- Show them exactly what a 10/10 answer looks like
+- Do NOT include markdown formatting inside JSON strings
+`;
+}
+
 const CATEGORY_SCORING_PROMPTS = {
+  product_design: generateEnhancedPrompt(
+    'Product Design',
+    'product design, user experience, and feature ideation',
+    `- **User & Persona**: Specific, concrete user definition with real pain points
+- **Innovation & Creativity**: Differentiated solutions that solve real problems
+- **Technical Feasibility**: Implementation complexity and scalability
+- **User Experience**: Complete journey with edge cases
+- **Success Metrics**: Clear, measurable outcomes (not vanity metrics)
+- **Iteration Strategy**: Testing, feedback loops, continuous improvement`,
+    ['User Centricity', 'Innovation', 'Technical Feasibility', 'User Experience', 'Success Metrics', 'Iteration']
+  ),
+
   root_cause_analysis: (question, answer) => `
 ROLE:
 You are a senior Product Manager at a top-tier tech company, specializing in data analysis and problem-solving.
