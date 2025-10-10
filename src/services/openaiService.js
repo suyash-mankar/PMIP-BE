@@ -20,7 +20,30 @@ ${answer}
 ---
 
 YOUR TASK:
-Provide a **brutal interview-style review** with the following structure:
+Provide a **comprehensive, step-by-step interview-style review** with the following structure:
+
+## 🎯 INTRODUCTION
+Start with: "Perfect — this is a classic [question type] question that tests how you think like a PM at [company]. Can you (1) [key skill 1], (2) [key skill 2], and (3) [key skill 3]? Let's break it down like a top-tier PM would 👇"
+
+## 🧭 STEP-BY-STEP ANALYSIS
+Break down their answer into logical steps (like the example):
+- 🧭 Step 1: Clarify the Problem
+- 🎯 Step 2: Define the User Problem  
+- 💡 Step 3: Product Vision
+- 👤 Step 4: Target Users & Personas
+- 🧩 Step 5: Core Product Concept
+- 🧱 Step 6: MVP Features
+- ⚙️ Step 7: Leveraging Company Strengths
+- 📈 Step 8: Success Metrics
+- 🚀 Step 9: Roadmap (Phased Rollout)
+- 🧠 Step 10: Risks & Mitigation
+- 🧩 Step 11: Interview Summary (2-Minute Version)
+
+For each step, analyze:
+- What they did well
+- What was missing or weak
+- How a top-tier PM would approach it
+- Specific examples from their answer
 
 ## ✅ STRENGTHS IN YOUR ANSWER
 - What they did well (be specific, cite examples from their answer)
@@ -35,14 +58,18 @@ For each weakness:
 3. Show what they should have done instead
 4. Use bold text for emphasis and quotation marks for specific phrases
 
-## 🔥 REFRAMED "PASS-LEVEL" ANSWER (shorter & sharper)
-Provide a complete rewrite showing best practices:
-- **User segment →** [specific target user]
-- **Problem →** [clear problem statement]
-- **Solutions (prioritized):** [bullet points with specific solutions]
-- **MVP →** [focused first step]
-- **Metrics:** [NSM and supporting metrics]
-- **Guardrail:** [key constraint/risk]
+## 🔥 REFRAMED "PASS-LEVEL" ANSWER (comprehensive & structured)
+Provide a complete rewrite showing best practices with step-by-step structure:
+- **🧭 Problem Clarification:** [clear problem statement]
+- **🎯 User Problem:** [specific user needs]
+- **💡 Product Vision:** [north star and goals]
+- **👤 Target Users:** [personas with needs]
+- **🧩 Core Concept:** [product concept]
+- **🧱 MVP Features:** [detailed feature list]
+- **⚙️ Company Leverage:** [how to use existing strengths]
+- **📈 Success Metrics:** [NSM and supporting metrics]
+- **🚀 Roadmap:** [phased approach]
+- **🧠 Risks:** [key risks and mitigation]
 
 ## ⚡ BRUTAL TRUTH
 One sentence summarizing: "Your raw answer = X (reason). Reframed = Y (reason)."
@@ -52,7 +79,7 @@ One sentence summarizing: "Your raw answer = X (reason). Reframed = Y (reason)."
 OUTPUT FORMAT (JSON):
 {
   "overall_score": 0-10,
-  "feedback_text": "Complete feedback in ChatGPT format with markdown formatting, emojis, arrows, and bold text. Include all sections: introduction, strengths, areas to improve, reframed answer, and brutal truth. Use proper markdown: **bold**, • bullets, → arrows, emojis ✅⚠️🔥⚡",
+  "feedback_text": "Complete feedback in ChatGPT format with markdown formatting, emojis, arrows, and bold text. Include all sections: introduction, step-by-step analysis, strengths, areas to improve, reframed answer, and brutal truth. Use proper markdown: **bold**, • bullets, → arrows, emojis 🎯🧭💡👤🧩🧱⚙️📈🚀🧠✅⚠️🔥⚡",
   "strengths": [
     "Specific strength with example from answer",
     "Another strength with reasoning",
@@ -64,23 +91,25 @@ OUTPUT FORMAT (JSON):
     "Third weakness with actionable fix",
     "Fourth weakness (if applicable)"
   ],
-  "reframed_answer": "Complete reframed answer with **User segment →**, **Problem →**, **Solutions:**, **MVP →**, **Metrics:**, **Guardrail:** structure",
+  "reframed_answer": "Complete reframed answer with step-by-step structure like the example",
   "brutal_truth": "One sentence: 'Your raw answer = X. Reframed = Y.'",
-  "model_answer": "Alternative top-tier 10/10 answer (3-5 sentences) showing advanced PM thinking"
+  "model_answer": "Alternative top-tier 10/10 answer showing advanced PM thinking with step-by-step structure"
 }
 
 ---
 
 TONE & STYLE:
-- Write like you're giving real interview debrief notes
+- Write like you're giving a comprehensive interview debrief
 - Be brutally honest but constructive
+- Use step-by-step analysis like the example
 - Use "→" arrows to show cause-effect
 - Use specific examples from their answer
 - Compare weak parts to strong alternatives
 - Don't sugarcoat, but always show the path forward
-- Use emojis: ✅ ⚠️ 🔥 ⚡
+- Use emojis: 🎯🧭💡👤🧩🧱⚙️📈🚀🧠✅⚠️🔥⚡
 - Use bold text for emphasis: **text**
 - Use bullet points: • item
+- Make it comprehensive and detailed like the example
 
 STRICT RULES:
 - Always output pure JSON only
@@ -88,7 +117,8 @@ STRICT RULES:
 - Never say "great job" unless truly exceptional
 - Show them exactly what a 10/10 answer looks like
 - Use proper markdown formatting in feedback_text
-- Include all sections: introduction, strengths, areas to improve, reframed answer, brutal truth
+- Include all sections: introduction, step-by-step analysis, strengths, areas to improve, reframed answer, brutal truth
+- Make it as detailed and structured as the example you provided
 `;
 
 /**
