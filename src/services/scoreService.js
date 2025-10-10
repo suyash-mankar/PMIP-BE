@@ -162,10 +162,35 @@ async function scoreSession(session) {
         }
       }
 
-      // Convert feedback array to string with bullet points
-      const feedbackString = Array.isArray(scoreData.feedback)
-        ? scoreData.feedback.map((bullet, index) => `${index + 1}. ${bullet}`).join('\n')
-        : scoreData.feedback;
+      // Format feedback based on response format
+      let feedbackString;
+      
+      if (scoreData.strengths && scoreData.weaknesses) {
+        // New enhanced format with strengths/weaknesses/brutal_truth
+        const strengthsSection = Array.isArray(scoreData.strengths)
+          ? '✅ STRENGTHS:\n' + scoreData.strengths.map(s => `• ${s}`).join('\n')
+          : '';
+        
+        const weaknessesSection = Array.isArray(scoreData.weaknesses)
+          ? '\n\n❌ WEAKNESSES:\n' + scoreData.weaknesses.map(w => `• ${w}`).join('\n')
+          : '';
+        
+        const brutalTruthSection = scoreData.brutal_truth
+          ? '\n\n⚡ BRUTAL TRUTH:\n' + scoreData.brutal_truth
+          : '';
+        
+        const passLevelSection = scoreData.pass_level_answer
+          ? '\n\n🚀 PASS-LEVEL ANSWER:\n' + scoreData.pass_level_answer
+          : '';
+        
+        feedbackString = strengthsSection + weaknessesSection + brutalTruthSection + passLevelSection;
+      } else if (Array.isArray(scoreData.feedback)) {
+        // Old format with simple feedback array
+        feedbackString = scoreData.feedback.map((bullet, index) => `${index + 1}. ${bullet}`).join('\n');
+      } else {
+        // Fallback to raw feedback
+        feedbackString = scoreData.feedback || 'No feedback provided';
+      }
 
       // Save to database (mapping field names to existing schema)
       const score = await prisma.score.create({

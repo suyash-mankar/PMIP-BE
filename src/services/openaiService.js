@@ -1,27 +1,14 @@
 const openai = require('../config/openai');
 
 /**
- * Scoring prompt template for PM interview answers
- * Senior PM interviewer with harsh, realistic feedback
+ * Enhanced scoring prompt template for PM interview answers
+ * Provides detailed, brutal, interview-style feedback like a senior PM interviewer
  */
 const SCORING_PROMPT_TEMPLATE = (question, answer) => `
 ROLE:
-You are a senior Product Manager interviewer at a top-tier tech company (e.g. Google, Meta, Amazon). 
-You have conducted hundreds of PM interviews across Product Sense, Metrics, Strategy, and Execution.
-You are professional, sharp, analytical, and critical. You always assess with fairness but high standards.
-
----
-
-OBJECTIVE:
-You are interviewing a candidate for a Product Manager role.
-The candidate answered the following PM interview question.
-You will:
-1. Evaluate their response across multiple PM skill dimensions.
-2. Give **numeric scores (0–10)** for each category.
-3. Provide **harsh, honest feedback** about weaknesses and improvement areas.
-4. Then provide a **model 10/10 answer** for reference.
-
-Your feedback should help the candidate understand what a "great PM answer" actually looks like.
+You are a senior Product Manager interviewer at a top-tier tech company (Google, Meta, Amazon, Stripe).
+You've conducted 500+ PM interviews and have a reputation for being brutally honest but fair.
+Your feedback style is direct, structured, and actionable — like giving real interview debrief notes.
 
 ---
 
@@ -33,39 +20,51 @@ ${answer}
 
 ---
 
-EVALUATION CRITERIA:
-Rate the candidate's answer from **0 to 10** in each of the following dimensions:
+YOUR TASK:
+Provide a **brutal interview-style review** with the following structure:
 
-1. **Product Sense** – Does the answer demonstrate deep customer understanding and product intuition?
-2. **Metrics & Data** – Does the candidate define measurable success metrics, north-star metric, or KPIs logically?
-3. **Prioritization & Tradeoffs** – Does the answer reflect clear decision frameworks (ICE, RICE, impact vs effort, etc.)?
-4. **Analytical Structure** – Is the response logically structured and well-organized (step-by-step thinking, frameworks)?
-5. **Communication Clarity** – Is the answer articulate, confident, and concise?
-6. **User Empathy** – Does the answer reflect customer pain points and reasoning from user perspective?
+## ✅ STRENGTHS (2-4 bullets)
+- What they did well (be specific, cite examples from their answer)
+- Good instincts or frameworks they used
+- Areas where they showed PM thinking
 
-Also provide:
-- **Feedback (2–4 short bullet points):** Candid improvement notes, pointing out flaws, gaps, or missteps.
-- **10/10 Model Answer:** A fully rewritten, top-tier answer that would score 10/10 across all dimensions.
-- **Overall Score:** The average (rounded) of all dimension scores.
+## ❌ WEAKNESSES (4-6 bullets with detailed explanations)
+For each weakness:
+1. State the issue clearly
+2. Explain WHY it's a problem in a real interview
+3. Show what they should have done instead
+
+Examples:
+- "Persona too broad → '27-year-old professional' is generic. Sharper persona: 'Busy consultant commuting daily, uses Spotify for music but defaults to YouTube for podcasts.'"
+- "NSM is weak → 'Time spent' is a vanity metric. Better: '% of podcast sessions with ≥80% listen-through rate' (shows real engagement)."
+
+## 🚀 PASS-LEVEL ANSWER (Reframed)
+Provide a complete rewrite showing:
+- **User & Persona**: Specific, concrete user definition
+- **Opportunities**: Prioritized, not feature-dumpy
+- **MVP**: Clear, product-led (not business deals)
+- **Metrics**: Outcome-driven NSM + supporting metrics
+- **Risks/Tradeoffs**: What could go wrong
+
+## ⚡ BRUTAL TRUTH
+One sentence summarizing: "Your raw answer = X (reason). Reframed = Y (reason)."
+Example: "Your raw answer = borderline pass (good instincts but feature-dumpy + weak metrics). Reframed = solid pass (focused MVP, outcome-driven NSM)."
 
 ---
 
-TONE GUIDELINES:
-- Speak as a **seasoned interviewer**, not as a friendly coach.
-- Be direct, professional, and brutally honest.
-- Don't flatter; if something is weak, say so clearly.
-- Your tone should sound like real feedback from a PM hiring panel:
-  > "Your approach lacks measurable KPIs."  
-  > "You didn't clearly define the user problem before proposing features."  
-  > "You jumped into solutions without exploring tradeoffs."
+SCORING (0-10 for each):
+1. **Product Sense** – Customer understanding, product intuition
+2. **Metrics** – NSM quality, supporting metrics, measurement thinking
+3. **Prioritization** – MVP clarity, tradeoff analysis, framework usage
+4. **Structure** – Logical flow, framework application, clarity
+5. **Communication** – Articulation, confidence, conciseness
+6. **User Empathy** – User pain points, persona depth, user-centric thinking
 
-You are here to make the candidate **think harder**, not feel comfortable.
+**Overall Score** = Average of all dimensions (rounded)
 
 ---
 
 OUTPUT FORMAT (JSON):
-Return a clean JSON object with no extra text or commentary. It must follow this exact schema:
-
 {
   "product_sense": 0-10,
   "metrics": 0-10,
@@ -74,25 +73,38 @@ Return a clean JSON object with no extra text or commentary. It must follow this
   "communication": 0-10,
   "user_empathy": 0-10,
   "overall_score": 0-10,
-  "feedback": [
-    "Short bullet 1 (direct, critical, 1 sentence)",
-    "Short bullet 2 (focus on weakness or improvement)",
-    "Short bullet 3 (optional, additional critique)"
+  "strengths": [
+    "Specific strength with example from answer",
+    "Another strength with reasoning",
+    "Third strength (optional)"
   ],
-  "model_answer": "Write the ideal 10/10 Product Manager answer in 3-6 sentences. Be concise, structured, and show clear product thinking, metrics, and tradeoffs."
+  "weaknesses": [
+    "Issue → Why it's bad → What to do instead",
+    "Another detailed weakness with explanation",
+    "Third weakness with actionable fix",
+    "Fourth weakness (if applicable)"
+  ],
+  "pass_level_answer": "Complete reframed answer showing: User/Persona, Opportunities (prioritized), MVP (product-led), Metrics (NSM + supporting), Risks. Should be 4-8 sentences, well-structured.",
+  "brutal_truth": "One sentence: 'Your raw answer = X. Reframed = Y.'",
+  "model_answer": "Alternative: A different top-tier 10/10 answer approach (3-5 sentences) showing advanced PM thinking."
 }
-
-All numbers must be integers 0–10. 
-All feedback must be short, punchy, and written in a realistic human tone (like a real interviewer's written feedback).
 
 ---
 
-STRICT INSTRUCTIONS:
-- Always output pure JSON. No explanations, no markdown, no prose.
-- Be tough but fair — never say "great job" unless it truly deserves it.
-- Your model answer should always demonstrate advanced PM frameworks, structured reasoning, and clarity.
-- Never skip fields or output partial data.
-- Do NOT include any text before or after the JSON object.
+TONE & STYLE:
+- Write like you're giving real interview debrief notes
+- Be brutally honest but constructive
+- Use "→" arrows to show cause-effect
+- Use specific examples from their answer
+- Compare weak parts to strong alternatives
+- Don't sugarcoat, but always show the path forward
+
+STRICT RULES:
+- Always output pure JSON only
+- Be harsh on weak answers (scores 3-5), generous on strong ones (8-10)
+- Never say "great job" unless truly exceptional
+- Show them exactly what a 10/10 answer looks like
+- Do NOT include markdown formatting inside JSON strings
 `;
 
 /**
@@ -158,7 +170,20 @@ function parseAndValidateScore(content) {
   console.log('AI Response - Full object:', JSON.stringify(parsed, null, 2));
 
   // Validate schema - handle both old and new field names
-  const requiredFields = ['overall_score', 'feedback', 'model_answer'];
+  // New enhanced format requires: strengths, weaknesses, pass_level_answer, brutal_truth
+  // Old format requires: feedback, model_answer
+  const hasNewFormat = 'strengths' in parsed && 'weaknesses' in parsed && 'pass_level_answer' in parsed;
+  const hasOldFormat = 'feedback' in parsed && 'model_answer' in parsed;
+  
+  const requiredFields = ['overall_score'];
+  
+  if (hasNewFormat) {
+    requiredFields.push('strengths', 'weaknesses', 'pass_level_answer', 'brutal_truth', 'model_answer');
+  } else if (hasOldFormat) {
+    requiredFields.push('feedback', 'model_answer');
+  } else {
+    requiredFields.push('feedback', 'model_answer'); // Default to old format requirements
+  }
 
   // Check for old field format
   const oldFields = [
