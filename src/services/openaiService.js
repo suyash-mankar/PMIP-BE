@@ -322,20 +322,39 @@ function parseAndValidateScore(content) {
     }
   }
 
-  // Validate feedback array
-  if (!Array.isArray(parsed.feedback) || parsed.feedback.length < 2) {
-    throw new Error('Invalid feedback: must be an array with at least 2 bullet points');
-  }
-
-  for (const bullet of parsed.feedback) {
-    if (typeof bullet !== 'string' || bullet.length < 10) {
-      throw new Error('Invalid feedback bullet: each must be a non-empty string');
+  // Validate feedback arrays based on format
+  if (has5PartFormat) {
+    // New 5-part format validation
+    if (!Array.isArray(parsed.strengths) || parsed.strengths.length < 1) {
+      console.warn('Warning: strengths should have at least 1 item, but allowing it');
+    }
+    if (!Array.isArray(parsed.gaps) || parsed.gaps.length < 1) {
+      console.warn('Warning: gaps should have at least 1 item, but allowing it');
+    }
+    if (typeof parsed.summary !== 'string' || parsed.summary.length < 10) {
+      console.warn('Warning: summary should be at least 10 characters, but allowing it');
+    }
+    if (typeof parsed.improved_framework !== 'string' || parsed.improved_framework.length < 20) {
+      console.warn('Warning: improved_framework should be substantial, but allowing it');
+    }
+  } else if (hasEnhancedFormat) {
+    // Enhanced format validation
+    if (!Array.isArray(parsed.strengths) || parsed.strengths.length < 1) {
+      console.warn('Warning: strengths should have at least 1 item, but allowing it');
+    }
+    if (!Array.isArray(parsed.weaknesses) || parsed.weaknesses.length < 1) {
+      console.warn('Warning: weaknesses should have at least 1 item, but allowing it');
+    }
+  } else if (hasOldFormat) {
+    // Old format validation
+    if (!Array.isArray(parsed.feedback) || parsed.feedback.length < 2) {
+      console.warn('Warning: feedback should have at least 2 items, but allowing it');
     }
   }
 
-  // Validate model answer
-  if (typeof parsed.model_answer !== 'string' || parsed.model_answer.length < 50) {
-    throw new Error('Invalid model_answer: must be a substantial string');
+  // Validate model answer (relaxed validation)
+  if (parsed.model_answer && typeof parsed.model_answer !== 'string') {
+    console.warn('Warning: model_answer should be a string, but allowing it');
   }
 
   return parsed;
