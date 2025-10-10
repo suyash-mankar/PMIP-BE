@@ -122,8 +122,8 @@ async function callOpenAIForScoring(question, answer, customPrompt = null) {
         content: prompt,
       },
     ],
-    temperature: 0.7, // GPT-4o supports custom temperature
-    max_tokens: 2000, // Increased to ensure full JSON response (6 scores + feedback + model answer)
+    temperature: 0.8, // Higher temperature for more creative, detailed feedback
+    // Removed max_tokens limit - let OpenAI generate full responses like ChatGPT UI
     response_format: { type: 'json_object' }, // Enforce JSON mode
   });
 
@@ -166,8 +166,13 @@ function parseAndValidateScore(content) {
   // New 5-part format: summary, strengths, gaps, improved_framework, model_answer
   // Previous enhanced format: strengths, weaknesses, pass_level_answer, brutal_truth
   // Old format: feedback, model_answer
-  const has5PartFormat = 'summary' in parsed && 'strengths' in parsed && 'gaps' in parsed && 'improved_framework' in parsed;
-  const hasEnhancedFormat = 'strengths' in parsed && 'weaknesses' in parsed && 'pass_level_answer' in parsed;
+  const has5PartFormat =
+    'summary' in parsed &&
+    'strengths' in parsed &&
+    'gaps' in parsed &&
+    'improved_framework' in parsed;
+  const hasEnhancedFormat =
+    'strengths' in parsed && 'weaknesses' in parsed && 'pass_level_answer' in parsed;
   const hasOldFormat = 'feedback' in parsed && 'model_answer' in parsed;
 
   const requiredFields = ['overall_score'];
@@ -175,7 +180,13 @@ function parseAndValidateScore(content) {
   if (has5PartFormat) {
     requiredFields.push('summary', 'strengths', 'gaps', 'improved_framework', 'model_answer');
   } else if (hasEnhancedFormat) {
-    requiredFields.push('strengths', 'weaknesses', 'pass_level_answer', 'brutal_truth', 'model_answer');
+    requiredFields.push(
+      'strengths',
+      'weaknesses',
+      'pass_level_answer',
+      'brutal_truth',
+      'model_answer'
+    );
   } else if (hasOldFormat) {
     requiredFields.push('feedback', 'model_answer');
   } else {
@@ -192,15 +203,9 @@ function parseAndValidateScore(content) {
     'user_empathy',
   ];
   const hasOldFields = oldFields.every(field => field in parsed);
-  
+
   // Check for new 5-part scoring dimensions
-  const new5PartScores = [
-    'clarity',
-    'depth',
-    'user_centricity',
-    'structure',
-    'creativity',
-  ];
+  const new5PartScores = ['clarity', 'depth', 'user_centricity', 'structure', 'creativity'];
   const hasNew5PartScores = new5PartScores.every(field => field in parsed);
 
   // Check for new Exponent-style field format (product design)
@@ -368,10 +373,10 @@ Remember: You're helping them understand the question better, not solving it for
   ];
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o', // Using GPT-4o since gpt-5-mini not yet available
+    model: 'gpt-4o', // Using GPT-4o for clarifications
     messages: messages,
-    temperature: 0.7, // GPT-4o supports custom temperature
-    max_tokens: 300, // GPT-4o uses max_tokens
+    temperature: 0.7, // Natural conversation temperature
+    // Removed max_tokens limit - allow full conversational responses
   });
 
   const response = completion.choices[0].message.content;
