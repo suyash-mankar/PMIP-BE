@@ -1,16 +1,22 @@
 const openai = require('../config/openai');
 
 /**
- * Enhanced scoring prompt template for PM interview answers
- * Provides detailed, brutal, interview-style feedback like a senior PM interviewer
+ * Enhanced PM Interview Answer Evaluator
+ * Based on structured 5-part evaluation framework
  */
 const SCORING_PROMPT_TEMPLATE = (question, answer) => `
-ROLE:
-You are a senior Product Manager interviewer at a top-tier tech company (Google, Meta, Amazon, Stripe).
-You've conducted 500+ PM interviews and have a reputation for being brutally honest but fair.
-Your feedback style is direct, structured, and actionable — like giving real interview debrief notes.
+🎯 ROLE:
+You are a senior Product Manager at a top tech company (like Google, Swiggy, or Razorpay), interviewing a candidate for a PM role.
+You're experienced in evaluating product design, strategy, metrics, guesstimates, root cause analysis, and execution questions.
+
+🎯 TASK:
+Evaluate the candidate's answer critically and comprehensively — just like an interviewer would — in a structured, 5-part format.
+Be brutally honest, concise, and specific about what's missing or weak.
+No sugarcoating. You are a tough but fair mentor.
 
 ---
+
+📋 INPUT:
 
 QUESTION:
 ${question}
@@ -20,91 +26,78 @@ ${answer}
 
 ---
 
-YOUR TASK:
-Provide a **brutal interview-style review** with the following structure:
+📊 OUTPUT STRUCTURE (5 PARTS):
 
-## ✅ STRENGTHS (2-4 bullets)
-- What they did well (be specific, cite examples from their answer)
-- Good instincts or frameworks they used
-- Areas where they showed PM thinking
+1️⃣ SUMMARY OF UNDERSTANDING (2–3 lines)
+Briefly summarize what the candidate is trying to say — to show you understood their intent.
 
-## ❌ WEAKNESSES (4-6 bullets with detailed explanations)
-For each weakness:
-1. State the issue clearly
-2. Explain WHY it's a problem in a real interview
-3. Show what they should have done instead
+2️⃣ EVALUATION (Score out of 10)
+Rate the answer on:
+- Clarity of thought
+- Depth of analysis
+- User-centricity
+- Structure & flow
+- Creativity & practicality of solution
 
-Examples:
-- "Persona too broad → '27-year-old professional' is generic. Sharper persona: 'Busy consultant commuting daily, uses Spotify for music but defaults to YouTube for podcasts.'"
-- "NSM is weak → 'Time spent' is a vanity metric. Better: '% of podcast sessions with ≥80% listen-through rate' (shows real engagement)."
+3️⃣ STRENGTHS (2–3 bullet points)
+Highlight what the candidate did well — frameworks used, insights, structure, user empathy, quantification, etc.
+Use ✅ prefix for each strength.
 
-## 🚀 PASS-LEVEL ANSWER (Reframed)
-Provide a complete rewrite showing:
-- **User & Persona**: Specific, concrete user definition
-- **Opportunities**: Prioritized, not feature-dumpy
-- **MVP**: Clear, product-led (not business deals)
-- **Metrics**: Outcome-driven NSM + supporting metrics
-- **Risks/Tradeoffs**: What could go wrong
+4️⃣ GAPS / WHAT'S MISSING (4–6 bullet points)
+Be blunt about what was weak — missing problem framing, vague success metrics, no prioritization logic, lack of user persona, etc.
+If they jumped to features too fast, call it out.
+Use ⚠️ prefix for each gap.
 
-## ⚡ BRUTAL TRUTH
-One sentence summarizing: "Your raw answer = X (reason). Reframed = Y (reason)."
-Example: "Your raw answer = borderline pass (good instincts but feature-dumpy + weak metrics). Reframed = solid pass (focused MVP, outcome-driven NSM)."
-
----
-
-SCORING (0-10 for each):
-1. **Product Sense** – Customer understanding, product intuition
-2. **Metrics** – NSM quality, supporting metrics, measurement thinking
-3. **Prioritization** – MVP clarity, tradeoff analysis, framework usage
-4. **Structure** – Logical flow, framework application, clarity
-5. **Communication** – Articulation, confidence, conciseness
-6. **User Empathy** – User pain points, persona depth, user-centric thinking
-
-**Overall Score** = Average of all dimensions (rounded)
+5️⃣ SUGGESTED IMPROVED FRAMEWORK (short, reusable)
+Give a mini-framework or restructured outline for how they should've answered this kind of question.
+Use 💡 prefix.
+Then provide a rewritten answer in 3–5 bullet points demonstrating what a "9/10" answer would look like.
 
 ---
 
 OUTPUT FORMAT (JSON):
 {
-  "product_sense": 0-10,
-  "metrics": 0-10,
-  "prioritization": 0-10,
+  "clarity": 0-10,
+  "depth": 0-10,
+  "user_centricity": 0-10,
   "structure": 0-10,
-  "communication": 0-10,
-  "user_empathy": 0-10,
+  "creativity": 0-10,
   "overall_score": 0-10,
+  "summary": "2-3 line summary of what the candidate is trying to say",
   "strengths": [
-    "Specific strength with example from answer",
-    "Another strength with reasoning",
-    "Third strength (optional)"
+    "What they did well (framework used, insights, etc.)",
+    "Another strength",
+    "Third strength (if applicable)"
   ],
-  "weaknesses": [
-    "Issue → Why it's bad → What to do instead",
-    "Another detailed weakness with explanation",
-    "Third weakness with actionable fix",
-    "Fourth weakness (if applicable)"
+  "gaps": [
+    "Missing problem framing",
+    "Vague success metrics",
+    "No prioritization logic",
+    "Lack of user persona",
+    "Jumped to features too early",
+    "Other specific gaps"
   ],
-  "pass_level_answer": "Complete reframed answer showing: User/Persona, Opportunities (prioritized), MVP (product-led), Metrics (NSM + supporting), Risks. Should be 4-8 sentences, well-structured.",
-  "brutal_truth": "One sentence: 'Your raw answer = X. Reframed = Y.'",
-  "model_answer": "Alternative: A different top-tier 10/10 answer approach (3-5 sentences) showing advanced PM thinking."
+  "improved_framework": "Mini-framework for this question type (e.g., Clarify → Define User & Goal → Identify Pain Points → Ideate → Prioritize → Metrics → Risks)",
+  "model_answer": "Rewritten 9/10 answer in 3-5 bullet points showing what excellence looks like"
 }
 
 ---
 
-TONE & STYLE:
-- Write like you're giving real interview debrief notes
-- Be brutally honest but constructive
-- Use "→" arrows to show cause-effect
-- Use specific examples from their answer
-- Compare weak parts to strong alternatives
-- Don't sugarcoat, but always show the path forward
+🎨 TONE GUIDELINES:
+- Be critical but encouraging ("strong instincts, weak structure" > "bad answer")
+- Keep total feedback under 400 words
+- Always include numeric scores
+- Do not be generic — tailor feedback to their actual content
+- Use clear, direct language
+- Point out specific examples from their answer
 
-STRICT RULES:
+🚨 STRICT RULES:
 - Always output pure JSON only
+- No markdown formatting inside JSON strings
 - Be harsh on weak answers (scores 3-5), generous on strong ones (8-10)
-- Never say "great job" unless truly exceptional
-- Show them exactly what a 10/10 answer looks like
-- Do NOT include markdown formatting inside JSON strings
+- Gaps should be specific (not "lacks detail" but "no success metrics defined")
+- Model answer must be concrete with frameworks and numbers
+- Overall score = average of 5 dimensions, rounded
 `;
 
 /**
@@ -169,23 +162,20 @@ function parseAndValidateScore(content) {
   console.log('AI Response - Keys returned:', Object.keys(parsed));
   console.log('AI Response - Full object:', JSON.stringify(parsed, null, 2));
 
-  // Validate schema - handle both old and new field names
-  // New enhanced format requires: strengths, weaknesses, pass_level_answer, brutal_truth
-  // Old format requires: feedback, model_answer
-  const hasNewFormat =
-    'strengths' in parsed && 'weaknesses' in parsed && 'pass_level_answer' in parsed;
+  // Validate schema - handle multiple field formats
+  // New 5-part format: summary, strengths, gaps, improved_framework, model_answer
+  // Previous enhanced format: strengths, weaknesses, pass_level_answer, brutal_truth
+  // Old format: feedback, model_answer
+  const has5PartFormat = 'summary' in parsed && 'strengths' in parsed && 'gaps' in parsed && 'improved_framework' in parsed;
+  const hasEnhancedFormat = 'strengths' in parsed && 'weaknesses' in parsed && 'pass_level_answer' in parsed;
   const hasOldFormat = 'feedback' in parsed && 'model_answer' in parsed;
 
   const requiredFields = ['overall_score'];
 
-  if (hasNewFormat) {
-    requiredFields.push(
-      'strengths',
-      'weaknesses',
-      'pass_level_answer',
-      'brutal_truth',
-      'model_answer'
-    );
+  if (has5PartFormat) {
+    requiredFields.push('summary', 'strengths', 'gaps', 'improved_framework', 'model_answer');
+  } else if (hasEnhancedFormat) {
+    requiredFields.push('strengths', 'weaknesses', 'pass_level_answer', 'brutal_truth', 'model_answer');
   } else if (hasOldFormat) {
     requiredFields.push('feedback', 'model_answer');
   } else {
@@ -202,6 +192,16 @@ function parseAndValidateScore(content) {
     'user_empathy',
   ];
   const hasOldFields = oldFields.every(field => field in parsed);
+  
+  // Check for new 5-part scoring dimensions
+  const new5PartScores = [
+    'clarity',
+    'depth',
+    'user_centricity',
+    'structure',
+    'creativity',
+  ];
+  const hasNew5PartScores = new5PartScores.every(field => field in parsed);
 
   // Check for new Exponent-style field format (product design)
   const productDesignFields = [
@@ -268,6 +268,7 @@ function parseAndValidateScore(content) {
 
   if (
     !hasOldFields &&
+    !hasNew5PartScores &&
     !hasProductDesignFields &&
     !hasMetricsFields &&
     !hasRootCauseFields &&

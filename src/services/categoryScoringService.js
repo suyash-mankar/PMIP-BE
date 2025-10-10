@@ -61,7 +61,9 @@ ${dimensionNames.map((dim, i) => `${i + 1}. **${dim}**`).join('\n')}
 
 OUTPUT FORMAT (JSON):
 {
-  ${dimensionNames.map(dim => `"${dim.toLowerCase().replace(/[^a-z0-9]+/g, '_')}": 0-10`).join(',\n  ')},
+  ${dimensionNames
+    .map(dim => `"${dim.toLowerCase().replace(/[^a-z0-9]+/g, '_')}": 0-10`)
+    .join(',\n  ')},
   "overall_score": 0-10,
   "strengths": [
     "Specific strength with example from answer",
@@ -108,7 +110,14 @@ const CATEGORY_SCORING_PROMPTS = {
 - **User Experience**: Complete journey with edge cases
 - **Success Metrics**: Clear, measurable outcomes (not vanity metrics)
 - **Iteration Strategy**: Testing, feedback loops, continuous improvement`,
-    ['User Centricity', 'Innovation', 'Technical Feasibility', 'User Experience', 'Success Metrics', 'Iteration']
+    [
+      'User Centricity',
+      'Innovation',
+      'Technical Feasibility',
+      'User Experience',
+      'Success Metrics',
+      'Iteration',
+    ]
   ),
 
   root_cause_analysis: (question, answer) => `

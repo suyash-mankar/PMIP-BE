@@ -165,8 +165,27 @@ async function scoreSession(session) {
       // Format feedback based on response format
       let feedbackString;
 
-      if (scoreData.strengths && scoreData.weaknesses) {
-        // New enhanced format with strengths/weaknesses/brutal_truth
+      if (scoreData.summary && scoreData.gaps && scoreData.improved_framework) {
+        // New 5-part format
+        const summarySection = scoreData.summary
+          ? '📝 SUMMARY:\n' + scoreData.summary
+          : '';
+        
+        const strengthsSection = Array.isArray(scoreData.strengths)
+          ? '\n\n✅ STRENGTHS:\n' + scoreData.strengths.map(s => `• ${s}`).join('\n')
+          : '';
+        
+        const gapsSection = Array.isArray(scoreData.gaps)
+          ? '\n\n⚠️ GAPS / WHAT\'S MISSING:\n' + scoreData.gaps.map(g => `• ${g}`).join('\n')
+          : '';
+        
+        const frameworkSection = scoreData.improved_framework
+          ? '\n\n💡 IMPROVED FRAMEWORK:\n' + scoreData.improved_framework
+          : '';
+        
+        feedbackString = summarySection + strengthsSection + gapsSection + frameworkSection;
+      } else if (scoreData.strengths && scoreData.weaknesses) {
+        // Previous enhanced format with strengths/weaknesses/brutal_truth
         const strengthsSection = Array.isArray(scoreData.strengths)
           ? '✅ STRENGTHS:\n' + scoreData.strengths.map(s => `• ${s}`).join('\n')
           : '';
