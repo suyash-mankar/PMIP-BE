@@ -113,7 +113,7 @@ async function callOpenAIForScoring(question, answer, customPrompt = null) {
         content: prompt,
       },
     ],
-    temperature: 0.8, // Higher temperature for more creative, detailed feedback
+    // GPT-5 only supports default temperature (1) - removed custom temperature
     // Removed max_tokens limit - let OpenAI generate full responses like ChatGPT UI
     response_format: { type: 'json_object' }, // Enforce JSON mode
   });
@@ -401,7 +401,7 @@ Remember: You're helping them understand the question better, not solving it for
   const completion = await openai.chat.completions.create({
     model: 'gpt-5', // Using GPT-5 for detailed clarifications like ChatGPT UI
     messages: messages,
-    temperature: 0.7, // Natural conversation temperature
+    // GPT-5 only supports default temperature (1) - removed custom temperature
     // Removed max_tokens limit - allow full conversational responses
   });
 
