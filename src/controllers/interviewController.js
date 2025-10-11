@@ -1,6 +1,6 @@
 const prisma = require('../config/database');
 const { scoreSession } = require('../services/scoreService');
-const { callOpenAIForClarification } = require('../services/openaiService');
+const { callOpenAIForClarification, generateModelAnswer } = require('../services/openaiService');
 
 const startInterview = async (req, res, next) => {
   try {
@@ -277,6 +277,43 @@ const getCategories = async (req, res, next) => {
   }
 };
 
+const getModelAnswer = async (req, res, next) => {
+  try {
+    const { questionId } = req.body;
+
+    // Get question text
+    const question = await prisma.question.findUnique({
+      where: { id: parseInt(questionId) },
+    });
+
+    if (!question) {
+      return res.status(404).json({ error: 'Question not found' });
+    }
+
+    // Generate model answer
+    const modelAnswer = await generateModelAnswer(question.text);
+
+    // Log event
+    await prisma.event.create({
+      data: {
+        userId: req.user.id,
+        eventType: 'model_answer_viewed',
+        metadata: JSON.stringify({
+          questionId: question.id,
+        }),
+      },
+    });
+
+    res.json({
+      modelAnswer,
+      questionText: question.text,
+    });
+  } catch (error) {
+    console.error('Get model answer error:', error);
+    next(error);
+  }
+};
+
 module.exports = {
   startInterview,
   submitAnswer,
@@ -285,4 +322,5 @@ module.exports = {
   getSessions,
   getSessionById,
   getCategories,
+  getModelAnswer,
 };

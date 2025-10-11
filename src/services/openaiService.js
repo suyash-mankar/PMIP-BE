@@ -77,26 +77,12 @@ Write 3-5 detailed paragraphs for each subsection. Include specific examples, da
 ## ⚡ BRUTAL TRUTH
 One sentence summarizing: "Your raw answer = X (reason). Reframed = Y (reason)."
 
-## 💎 COMPLETE MODEL ANSWER (How I Would Answer This Question)
-Now, here's how I would answer this question as a senior PM, from scratch:
-
-Provide a COMPREHENSIVE, ChatGPT-level answer that includes:
-- Full problem clarification (2-3 paragraphs)
-- Detailed user research and personas (3-4 paragraphs with tables if needed)
-- Complete product vision and strategy (2-3 paragraphs)
-- Comprehensive feature breakdown (4-5 paragraphs)
-- Detailed success metrics with rationale (2-3 paragraphs)
-- Full roadmap and execution plan (2-3 paragraphs)
-- Risk mitigation strategies (2-3 paragraphs)
-
-This should be 15-20 paragraphs total, matching ChatGPT's direct response quality.
-
 ---
 
 OUTPUT FORMAT (JSON):
 {
   "overall_score": 0-10,
-  "feedback_text": "Complete feedback in ChatGPT format with markdown formatting, emojis, arrows, and bold text. Include all sections: introduction, step-by-step analysis, strengths, areas to improve, reframed answer, brutal truth, and complete model answer. Use proper markdown: **bold**, • bullets, → arrows, emojis 🎯🧭💡👤🧩🧱⚙️📈🚀🧠✅⚠️🔥⚡💎",
+  "feedback_text": "Complete feedback in ChatGPT format with markdown formatting, emojis, arrows, and bold text. Include all sections: introduction, step-by-step analysis, strengths, areas to improve, reframed answer, and brutal truth. Use proper markdown: **bold**, • bullets, → arrows, emojis 🎯🧭💡👤🧩🧱⚙️📈🚀🧠✅⚠️🔥⚡",
   "strengths": [
     "Specific strength with example from answer",
     "Another strength with reasoning",
@@ -110,7 +96,6 @@ OUTPUT FORMAT (JSON):
   ],
   "reframed_answer": "Complete reframed answer with step-by-step structure like the example",
   "brutal_truth": "One sentence: 'Your raw answer = X. Reframed = Y.'",
-  "model_answer": "COMPREHENSIVE standalone answer (15-20 paragraphs) showing exactly how you would answer this question as a senior PM. Include all sections: problem clarification, user research, product vision, features, metrics, roadmap, risks. Make it as detailed as ChatGPT's direct responses with full explanations, examples, and reasoning for each point."
 }
 
 ---
@@ -123,13 +108,10 @@ TONE & STYLE:
 - Use specific examples from their answer
 - Compare weak parts to strong alternatives
 - Don't sugarcoat, but always show the path forward
-- Use emojis: 🎯🧭💡👤🧩🧱⚙️📈🚀🧠✅⚠️🔥⚡💎
+- Use emojis: 🎯🧭💡👤🧩🧱⚙️📈🚀🧠✅⚠️🔥⚡
 - Use bold text for emphasis: **text**
 - Use bullet points: • item
 - Make it comprehensive and detailed like the example
-- The model_answer should be ChatGPT-level comprehensive (1500-2000 words)
-- Think of model_answer as 'How would I answer this if someone asked me directly on ChatGPT?'
-- Don't summarize - provide FULL detailed explanations for everything
 
 STRICT RULES:
 - Always output pure JSON only
@@ -137,11 +119,8 @@ STRICT RULES:
 - Never say "great job" unless truly exceptional
 - Show them exactly what a 10/10 answer looks like
 - Use proper markdown formatting in feedback_text
-- Include all sections: introduction, step-by-step analysis, strengths, areas to improve, reframed answer, brutal truth, complete model answer
+- Include all sections: introduction, step-by-step analysis, strengths, areas to improve, reframed answer, brutal truth
 - Make it as detailed and structured as the example you provided
-- The model_answer field must be 15-20 paragraphs minimum
-- Each section in model_answer should have detailed explanations with examples
-- Match the depth and quality of ChatGPT's direct responses
 `;
 
 /**
@@ -421,6 +400,117 @@ function parseAndValidateScore(content) {
 }
 
 /**
+ * Generate a perfect 10/10 model answer for a PM interview question
+ * @param {string} question - The interview question
+ * @returns {Promise<string>} Perfect model answer
+ */
+async function generateModelAnswer(question) {
+  const prompt = `You are a senior Product Manager candidate interviewing at a top tech company (Google, Meta, Amazon, Stripe).
+You are answering the following PM interview question to score 10/10 on all dimensions.
+
+QUESTION:
+${question}
+
+YOUR TASK:
+Provide a COMPREHENSIVE, perfect 10/10 answer using proper markdown formatting.
+
+FORMAT YOUR ANSWER WITH MARKDOWN:
+- Use ## for main section headings (e.g., ## 🧭 Problem Clarification)
+- Use **bold** for key terms, frameworks, and important points
+- Use *italics* for emphasis and nuanced points
+- Use - or • for bullet points
+- Use numbered lists (1., 2., 3.) for sequential steps
+- Use > for quotes or key insights
+- Use proper paragraph breaks for readability
+
+STRUCTURE YOUR ANSWER:
+
+## 🧭 Problem Clarification
+- Clarify scope, constraints, and assumptions
+- Define success criteria upfront
+- **Key considerations:** List main factors
+- 2-3 well-structured paragraphs with bold emphasis
+
+## 🎯 User Research & Insights
+- **Target user segments:** Define personas clearly
+- **User needs and pain points:** Use bullet points
+- **Jobs-to-be-done framework:** What users are trying to accomplish
+- **Competitive landscape:** How alternatives compare
+- 3-4 paragraphs with bullet points and bold terms
+
+## 💡 Product Vision & Strategy
+- **North Star Metric:** Define primary success metric
+- **Strategic goals:** Short and long-term objectives
+- **Product positioning:** How it differentiates
+- **Long-term vision:** Where this product goes
+- 2-3 paragraphs with clear structure
+
+## 🧩 Solution & Features
+- **Core product concept:** What we're building
+- **Feature breakdown:**
+  1. Feature A: Description with **key benefit**
+  2. Feature B: Description with rationale
+  3. Feature C: Description with priority
+- **MVP definition:** What ships first
+- **Phased approach:** How we scale
+- 4-5 paragraphs with numbered or bulleted lists
+
+## 📈 Success Metrics
+- **Primary Metric (NSM):** Define and justify
+- **Supporting metrics:**
+  - Metric 1: What it measures
+  - Metric 2: Why it matters
+  - Metric 3: Target thresholds
+- **Guardrail metrics:** What we monitor to avoid negative impact
+- 2-3 paragraphs with clear bullet structure
+
+## 🚀 Execution & Roadmap
+- **Go-to-market strategy:** How we launch
+- **Phase 1:** Initial rollout (timeline + goals)
+- **Phase 2:** Scaling (timeline + goals)
+- **Phase 3:** Optimization (timeline + goals)
+- **Key milestones:** Checkpoints and success criteria
+- 2-3 paragraphs with clear phases
+
+## 🧠 Risks & Mitigation
+- **Technical risks:**
+  - Risk A → *Mitigation strategy*
+  - Risk B → *Mitigation strategy*
+- **Market/business risks:**
+  - Risk C → *Mitigation strategy*
+  - Risk D → *Mitigation strategy*
+- **Contingency plans:** What if things go wrong
+- 2-3 paragraphs with bullet points
+
+STYLE GUIDELINES:
+- Write 15-20 well-structured paragraphs total
+- Use markdown consistently throughout
+- Bold important terms, metrics, and frameworks
+- Use bullet points for lists and options
+- Use numbered lists for sequential steps or phases
+- Break up text with headings and lists for readability
+- Keep it comprehensive but scannable
+- Make it look professional like ChatGPT's formatted responses`;
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-5',
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are a senior PM candidate giving a perfect 10/10 interview answer. Use proper markdown formatting: ## for headings, **bold** for emphasis, bullet points, numbered lists. Be comprehensive, structured, and professional.',
+      },
+      {
+        role: 'user',
+        content: prompt,
+      },
+    ],
+  });
+
+  return completion.choices[0].message.content;
+}
+
+/**
  * Call OpenAI API to answer clarifying questions during PM interview
  * Acts as an interviewer who helps clarify the question context
  * @param {string} question - The original interview question
@@ -468,5 +558,6 @@ module.exports = {
   callOpenAIForScoring,
   parseAndValidateScore,
   callOpenAIForClarification,
+  generateModelAnswer,
   SCORING_PROMPT_TEMPLATE,
 };

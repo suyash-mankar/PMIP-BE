@@ -235,7 +235,7 @@ async function scoreSession(session) {
             0,
           // For new format, we'll store additional fields in a JSON field if needed
           feedback: feedbackString,
-          sampleAnswer: scoreData.model_answer || scoreData.reframed_answer,
+          sampleAnswer: scoreData.reframed_answer || '',
           totalScore,
           tokensUsed,
           status: 'completed',
