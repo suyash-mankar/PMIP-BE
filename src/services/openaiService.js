@@ -20,59 +20,64 @@ ${answer}
 ---
 
 YOUR TASK:
-Provide a **comprehensive, step-by-step interview-style review** with the following structure:
+Provide a **comprehensive, step-by-step interview-style review** using proper markdown formatting.
+
+FORMAT YOUR FEEDBACK WITH MARKDOWN:
+- Use ## for main section headings (e.g., ## 🎯 INTRODUCTION, ## 🧭 STEP-BY-STEP ANALYSIS)
+- Use **bold** for key terms, issues, and important points
+- Use *italics* for emphasis and examples
+- Use - or • for bullet points
+- Use numbered lists (1., 2., 3.) for sequential items
+- Use > for key insights or quotes
+- Use proper paragraph breaks for readability
+
+PROVIDE FEEDBACK WITH THIS STRUCTURE:
 
 ## 🎯 INTRODUCTION
 Start with: "Perfect — this is a classic [question type] question that tests how you think like a PM at [company]. Can you (1) [key skill 1], (2) [key skill 2], and (3) [key skill 3]? Let's break it down like a top-tier PM would 👇"
 
 ## 🧭 STEP-BY-STEP ANALYSIS
-Break down their answer into logical steps (like the example):
-- 🧭 Step 1: Clarify the Problem
-- 🎯 Step 2: Define the User Problem  
-- 💡 Step 3: Product Vision
-- 👤 Step 4: Target Users & Personas
-- 🧩 Step 5: Core Product Concept
-- 🧱 Step 6: MVP Features
-- ⚙️ Step 7: Leveraging Company Strengths
-- 📈 Step 8: Success Metrics
-- 🚀 Step 9: Roadmap (Phased Rollout)
-- 🧠 Step 10: Risks & Mitigation
-- 🧩 Step 11: Interview Summary (2-Minute Version)
+Break down their answer into logical steps with detailed analysis for EACH step (2-3 paragraphs per step):
+- **Step 1: Clarify the Problem** - What they did well, what was missing, how a top PM would approach it
+- **Step 2: Define the User Problem** - Continue with detailed analysis
+- **Step 3: Product Vision** - Continue analysis
+- **Step 4: Target Users & Personas** - Continue analysis
+- **Step 5: Core Product Concept** - Continue analysis
+- **Step 6: MVP Features** - Continue analysis
+- **Step 7: Leveraging Company Strengths** - Continue analysis
+- **Step 8: Success Metrics** - Continue analysis
+- **Step 9: Roadmap (Phased Rollout)** - Continue analysis
+- **Step 10: Risks & Mitigation** - Continue analysis
 
-For EACH step, provide 2-3 paragraphs of detailed analysis:
-- What they did well with specific examples from their answer
-- What was missing or weak with detailed explanations
-- How a top-tier PM would approach it with specific examples
-- Show exactly how a top PM would answer each step with specific examples
-- Make each step comprehensive like ChatGPT's direct responses
+Include 8-12 steps total depending on question type. Use **bold** for step titles and provide comprehensive analysis for each.
 
 ## ✅ STRENGTHS IN YOUR ANSWER
-- What they did well (be specific, cite examples from their answer)
-- Good frameworks or approaches they used
-- Areas where they showed strong PM thinking
-- Use right arrows (→) to show cause-effect relationships
+- **Strength 1:** Specific example from their answer with → cause-effect
+- **Strength 2:** What they did well with concrete evidence
+- **Strength 3:** Good frameworks or approaches they used
+
+Use bullet points and → arrows to show cause-effect relationships.
 
 ## ⚠️ AREAS TO IMPROVE
-For each weakness:
-1. State the issue clearly with specific examples
-2. Explain WHY it's a problem in a real interview
-3. Show what they should have done instead
-4. Use bold text for emphasis and quotation marks for specific phrases
+For each weakness (3-5 total):
+- **Issue:** State the problem clearly
+- **Why it matters:** Explain impact in real interview
+- **What to do instead:** Show the better approach
 
-## 🔥 REFRAMED "PASS-LEVEL" ANSWER (comprehensive & structured)
-Provide a complete rewrite showing best practices with step-by-step structure:
-Write 3-5 detailed paragraphs for each subsection. Include specific examples, data points, and reasoning. Make it as detailed as if you were answering the question yourself.
+Use **bold** for key issues and provide actionable fixes.
 
-- **🧭 Problem Clarification:** [2-3 paragraphs with clear problem statement, scope, and context]
-- **🎯 User Problem:** [3-4 paragraphs with specific user needs, pain points, and JTBD]
-- **💡 Product Vision:** [2-3 paragraphs with north star, goals, and strategic direction]
-- **👤 Target Users:** [3-4 paragraphs with detailed personas, needs, and user segments]
-- **🧩 Core Concept:** [2-3 paragraphs with product concept, positioning, and value prop]
-- **🧱 MVP Features:** [4-5 paragraphs with detailed feature breakdown and prioritization]
-- **⚙️ Company Leverage:** [2-3 paragraphs with how to use existing strengths and assets]
-- **📈 Success Metrics:** [2-3 paragraphs with NSM, supporting metrics, and rationale]
-- **🚀 Roadmap:** [2-3 paragraphs with phased approach and execution timeline]
-- **🧠 Risks:** [2-3 paragraphs with key risks, mitigation strategies, and contingency plans]
+## 🔥 REFRAMED "PASS-LEVEL" ANSWER
+Provide a complete rewrite with 8-12 detailed subsections:
+- **🧭 Subsection 1:** 2-3 paragraphs with specific examples
+- **🎯 Subsection 2:** 2-3 paragraphs with data points
+- **💡 Subsection 3:** Continue for all major areas
+- **👤 Subsection 4:** Continue analysis
+- **🧩 Subsection 5:** Continue analysis
+- **🧱 Subsection 6:** Continue analysis
+- **⚙️ Subsection 7:** Continue analysis
+- **📈 Subsection 8:** Continue analysis
+
+Write comprehensive paragraphs with specific examples, data points, and reasoning. Use **bold** for key terms.
 
 ## ⚡ BRUTAL TRUTH
 One sentence summarizing: "Your raw answer = X (reason). Reframed = Y (reason)."
@@ -82,7 +87,7 @@ One sentence summarizing: "Your raw answer = X (reason). Reframed = Y (reason)."
 OUTPUT FORMAT (JSON):
 {
   "overall_score": 0-10,
-  "feedback_text": "Complete feedback in ChatGPT format with markdown formatting, emojis, arrows, and bold text. Include all sections: introduction, step-by-step analysis, strengths, areas to improve, reframed answer, and brutal truth. Use proper markdown: **bold**, • bullets, → arrows, emojis 🎯🧭💡👤🧩🧱⚙️📈🚀🧠✅⚠️🔥⚡",
+  "feedback_text": "Complete feedback with markdown formatting. Use ## for sections, **bold** for emphasis, • for bullets, numbered lists, *italics* for examples. Include: introduction, step-by-step analysis, strengths, areas to improve, reframed answer, brutal truth.",
   "strengths": [
     "Specific strength with example from answer",
     "Another strength with reasoning",
@@ -101,26 +106,21 @@ OUTPUT FORMAT (JSON):
 ---
 
 TONE & STYLE:
-- Write like you're giving a comprehensive interview debrief
+- Use markdown: ## headings, **bold**, *italic*, • bullets, numbered lists
+- Write comprehensive interview debrief with specific examples
+- Use → arrows for cause-effect relationships
 - Be brutally honest but constructive
-- Use step-by-step analysis like the example
-- Use "→" arrows to show cause-effect
-- Use specific examples from their answer
-- Compare weak parts to strong alternatives
-- Don't sugarcoat, but always show the path forward
-- Use emojis: 🎯🧭💡👤🧩🧱⚙️📈🚀🧠✅⚠️🔥⚡
-- Use bold text for emphasis: **text**
-- Use bullet points: • item
-- Make it comprehensive and detailed like the example
+- Show exactly what 10/10 looks like
+- Make it structured and scannable like ChatGPT
 
 STRICT RULES:
 - Always output pure JSON only
 - Be harsh on weak answers (scores 3-5), generous on strong ones (8-10)
 - Never say "great job" unless truly exceptional
 - Show them exactly what a 10/10 answer looks like
-- Use proper markdown formatting in feedback_text
-- Include all sections: introduction, step-by-step analysis, strengths, areas to improve, reframed answer, brutal truth
-- Make it as detailed and structured as the example you provided
+- Use proper markdown formatting: ## for sections, **bold**, *italic*, bullets, lists
+- Include all sections with proper markdown structure
+- Make it scannable and structured like ChatGPT
 `;
 
 /**
