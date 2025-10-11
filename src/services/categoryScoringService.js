@@ -9,47 +9,47 @@
  */
 const CATEGORY_DIMENSIONS = {
   product_design: {
-    user_research: { weight: 0.20, name: 'User Research' },
+    user_research: { weight: 0.2, name: 'User Research' },
     problem_definition: { weight: 0.15, name: 'Problem Definition' },
-    solution_ideation: { weight: 0.20, name: 'Solution Ideation' },
+    solution_ideation: { weight: 0.2, name: 'Solution Ideation' },
     prioritization: { weight: 0.15, name: 'Prioritization' },
     metrics: { weight: 0.15, name: 'Metrics' },
     execution: { weight: 0.15, name: 'Execution' },
   },
   root_cause_analysis: {
-    problem_framing: { weight: 0.20, name: 'Problem Framing' },
-    hypothesis_generation: { weight: 0.20, name: 'Hypothesis Generation' },
-    data_analysis: { weight: 0.20, name: 'Data Analysis' },
+    problem_framing: { weight: 0.2, name: 'Problem Framing' },
+    hypothesis_generation: { weight: 0.2, name: 'Hypothesis Generation' },
+    data_analysis: { weight: 0.2, name: 'Data Analysis' },
     root_cause_identification: { weight: 0.15, name: 'Root Cause Identification' },
     solution_prioritization: { weight: 0.15, name: 'Solution Prioritization' },
-    implementation: { weight: 0.10, name: 'Implementation' },
+    implementation: { weight: 0.1, name: 'Implementation' },
   },
   metrics: {
     goal_clarity: { weight: 0.15, name: 'Goal Clarity' },
     metric_selection: { weight: 0.25, name: 'Metric Selection' },
-    data_analysis: { weight: 0.20, name: 'Data Analysis' },
+    data_analysis: { weight: 0.2, name: 'Data Analysis' },
     ab_testing: { weight: 0.15, name: 'A/B Testing' },
     insights: { weight: 0.15, name: 'Insights' },
-    business_impact: { weight: 0.10, name: 'Business Impact' },
+    business_impact: { weight: 0.1, name: 'Business Impact' },
   },
   product_improvement: {
     user_research: { weight: 0.25, name: 'User Research' },
-    pain_point_identification: { weight: 0.20, name: 'Pain Point Identification' },
-    solution_prioritization: { weight: 0.20, name: 'Solution Prioritization' },
+    pain_point_identification: { weight: 0.2, name: 'Pain Point Identification' },
+    solution_prioritization: { weight: 0.2, name: 'Solution Prioritization' },
     mvp_definition: { weight: 0.15, name: 'MVP Definition' },
-    metrics: { weight: 0.10, name: 'Metrics' },
-    iteration: { weight: 0.10, name: 'Iteration' },
+    metrics: { weight: 0.1, name: 'Metrics' },
+    iteration: { weight: 0.1, name: 'Iteration' },
   },
   product_strategy: {
-    market_analysis: { weight: 0.20, name: 'Market Analysis' },
-    competitive_positioning: { weight: 0.20, name: 'Competitive Positioning' },
-    strategic_framework: { weight: 0.20, name: 'Strategic Framework' },
+    market_analysis: { weight: 0.2, name: 'Market Analysis' },
+    competitive_positioning: { weight: 0.2, name: 'Competitive Positioning' },
+    strategic_framework: { weight: 0.2, name: 'Strategic Framework' },
     resource_allocation: { weight: 0.15, name: 'Resource Allocation' },
     risk_assessment: { weight: 0.15, name: 'Risk Assessment' },
-    execution: { weight: 0.10, name: 'Execution' },
+    execution: { weight: 0.1, name: 'Execution' },
   },
   guesstimates: {
-    framework_selection: { weight: 0.20, name: 'Framework Selection' },
+    framework_selection: { weight: 0.2, name: 'Framework Selection' },
     assumption_quality: { weight: 0.25, name: 'Assumption Quality' },
     calculation_logic: { weight: 0.25, name: 'Calculation Logic' },
     sanity_check: { weight: 0.15, name: 'Sanity Check' },
@@ -70,7 +70,9 @@ function generateCategoryRubric(categoryName, categoryKey) {
 I'm your interviewer today - a Senior PM at a top tech company (Google, Meta, Amazon, Stripe). I've conducted 200+ PM interviews and I'm here to give you honest, actionable feedback on your ${categoryName} answer.
 
 EVALUATION APPROACH:
-I'll evaluate your answer across ${Object.keys(dimensions).length} key dimensions that matter in real PM interviews:
+I'll evaluate your answer across ${
+    Object.keys(dimensions).length
+  } key dimensions that matter in real PM interviews:
 
 ${dimensionList}
 
@@ -167,7 +169,7 @@ OUTPUT FORMAT (JSON):
   "overall_score": 0-10,
   "dimension_scores": {
     ${Object.keys(dimensions)
-      .map((key) => `"${key}": { "score": 0-10, "rationale": "brief reason" }`)
+      .map(key => `"${key}": { "score": 0-10, "rationale": "brief reason" }`)
       .join(',\n    ')}
   },
   "feedback_text": "[Full markdown formatted feedback with ## headings, **bold**, bullets as shown above]",

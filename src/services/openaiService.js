@@ -220,11 +220,20 @@ function parseAndValidateScore(content) {
   const hasOldFormat = 'feedback' in parsed && 'model_answer' in parsed;
   const hasChatGPTFormat =
     'feedback_text' in parsed && 'reframed_answer' in parsed && 'brutal_truth' in parsed;
+  
+  // Check for new interviewer-style format with dimension_scores object
+  const hasInterviewerFormat = 
+    'dimension_scores' in parsed && 
+    typeof parsed.dimension_scores === 'object' &&
+    'feedback_text' in parsed &&
+    'gaps' in parsed;
 
   const requiredFields = ['overall_score'];
 
   if (hasChatGPTFormat) {
     requiredFields.push('feedback_text', 'reframed_answer', 'brutal_truth');
+  } else if (hasInterviewerFormat) {
+    requiredFields.push('feedback_text', 'dimension_scores', 'strengths', 'gaps', 'brutal_truth');
   } else if (has5PartFormat) {
     requiredFields.push('summary', 'strengths', 'gaps', 'improved_framework', 'model_answer');
   } else if (hasEnhancedFormat) {
@@ -328,7 +337,8 @@ function parseAndValidateScore(content) {
     !hasProductImprovementFields &&
     !hasProductStrategyFields &&
     !hasGuesstimatesFields &&
-    !hasChatGPTFormat
+    !hasChatGPTFormat &&
+    !hasInterviewerFormat
   ) {
     // Try to find any scoring fields
     const scoringFields = Object.keys(parsed).filter(
@@ -368,6 +378,18 @@ function parseAndValidateScore(content) {
     const value = parsed[field];
     if (typeof value !== 'number' || value < 0 || value > 10) {
       throw new Error(`Invalid ${field}: must be a number between 0 and 10`);
+    }
+  }
+
+  // Validate dimension_scores if present (new interviewer format)
+  if (hasInterviewerFormat && parsed.dimension_scores) {
+    for (const [dimension, scoreObj] of Object.entries(parsed.dimension_scores)) {
+      if (typeof scoreObj === 'object' && scoreObj.score !== undefined) {
+        const score = scoreObj.score;
+        if (typeof score !== 'number' || score < 0 || score > 10) {
+          throw new Error(`Invalid dimension score for ${dimension}: must be a number between 0 and 10`);
+        }
+      }
     }
   }
 

@@ -213,24 +213,43 @@ async function scoreSession(session) {
         feedbackString = scoreData.feedback || 'No feedback provided';
       }
 
+      // Extract dimension scores from nested structure if present
+      let extractedScores = {
+        structure: 0,
+        metrics: 0,
+        prioritization: 0,
+        userEmpathy: 0,
+        communication: 0,
+      };
+
+      if (scoreData.dimension_scores && typeof scoreData.dimension_scores === 'object') {
+        // New interviewer format with nested dimension_scores
+        const dims = scoreData.dimension_scores;
+        
+        // Map dimension_scores to database fields based on category
+        extractedScores.structure = dims.user_research?.score || dims.problem_framing?.score || dims.goal_clarity?.score || dims.framework_selection?.score || dims.market_analysis?.score || 0;
+        extractedScores.metrics = dims.metrics?.score || dims.metric_selection?.score || 0;
+        extractedScores.prioritization = dims.prioritization?.score || dims.solution_prioritization?.score || dims.solution_ideation?.score || 0;
+        extractedScores.userEmpathy = dims.problem_definition?.score || dims.pain_point_identification?.score || 0;
+        extractedScores.communication = dims.execution?.score || dims.communication?.score || dims.calculation_logic?.score || 0;
+      } else {
+        // Old flat field format
+        extractedScores.structure = scoreData.structure || scoreData.user_centricity || scoreData.data_analysis || 0;
+        extractedScores.metrics = scoreData.metrics || scoreData.success_metrics || scoreData.metrics_selection || 0;
+        extractedScores.prioritization = scoreData.prioritization || scoreData.innovation || scoreData.actionable_insights || 0;
+        extractedScores.userEmpathy = scoreData.user_empathy || scoreData.user_experience || scoreData.business_impact || 0;
+        extractedScores.communication = scoreData.communication || scoreData.technical_feasibility || scoreData.statistical_understanding || 0;
+      }
+
       // Save to database (mapping field names to existing schema)
       const score = await prisma.score.create({
         data: {
           sessionId: session.id,
-          // Map old field format
-          structure:
-            scoreData.structure || scoreData.user_centricity || scoreData.data_analysis || 0,
-          metrics:
-            scoreData.metrics || scoreData.success_metrics || scoreData.metrics_selection || 0,
-          prioritization:
-            scoreData.prioritization || scoreData.innovation || scoreData.actionable_insights || 0,
-          userEmpathy:
-            scoreData.user_empathy || scoreData.user_experience || scoreData.business_impact || 0,
-          communication:
-            scoreData.communication ||
-            scoreData.technical_feasibility ||
-            scoreData.statistical_understanding ||
-            0,
+          structure: extractedScores.structure,
+          metrics: extractedScores.metrics,
+          prioritization: extractedScores.prioritization,
+          userEmpathy: extractedScores.userEmpathy,
+          communication: extractedScores.communication,
           // For new format, we'll store additional fields in a JSON field if needed
           feedback: feedbackString,
           sampleAnswer: scoreData.reframed_answer || '',
