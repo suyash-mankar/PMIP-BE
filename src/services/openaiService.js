@@ -39,11 +39,12 @@ Break down their answer into logical steps (like the example):
 - 🧠 Step 10: Risks & Mitigation
 - 🧩 Step 11: Interview Summary (2-Minute Version)
 
-For each step, analyze:
-- What they did well
-- What was missing or weak
-- How a top-tier PM would approach it
-- Specific examples from their answer
+For EACH step, provide 2-3 paragraphs of detailed analysis:
+- What they did well with specific examples from their answer
+- What was missing or weak with detailed explanations
+- How a top-tier PM would approach it with specific examples
+- Show exactly how a top PM would answer each step with specific examples
+- Make each step comprehensive like ChatGPT's direct responses
 
 ## ✅ STRENGTHS IN YOUR ANSWER
 - What they did well (be specific, cite examples from their answer)
@@ -60,26 +61,42 @@ For each weakness:
 
 ## 🔥 REFRAMED "PASS-LEVEL" ANSWER (comprehensive & structured)
 Provide a complete rewrite showing best practices with step-by-step structure:
-- **🧭 Problem Clarification:** [clear problem statement]
-- **🎯 User Problem:** [specific user needs]
-- **💡 Product Vision:** [north star and goals]
-- **👤 Target Users:** [personas with needs]
-- **🧩 Core Concept:** [product concept]
-- **🧱 MVP Features:** [detailed feature list]
-- **⚙️ Company Leverage:** [how to use existing strengths]
-- **📈 Success Metrics:** [NSM and supporting metrics]
-- **🚀 Roadmap:** [phased approach]
-- **🧠 Risks:** [key risks and mitigation]
+Write 3-5 detailed paragraphs for each subsection. Include specific examples, data points, and reasoning. Make it as detailed as if you were answering the question yourself.
+
+- **🧭 Problem Clarification:** [2-3 paragraphs with clear problem statement, scope, and context]
+- **🎯 User Problem:** [3-4 paragraphs with specific user needs, pain points, and JTBD]
+- **💡 Product Vision:** [2-3 paragraphs with north star, goals, and strategic direction]
+- **👤 Target Users:** [3-4 paragraphs with detailed personas, needs, and user segments]
+- **🧩 Core Concept:** [2-3 paragraphs with product concept, positioning, and value prop]
+- **🧱 MVP Features:** [4-5 paragraphs with detailed feature breakdown and prioritization]
+- **⚙️ Company Leverage:** [2-3 paragraphs with how to use existing strengths and assets]
+- **📈 Success Metrics:** [2-3 paragraphs with NSM, supporting metrics, and rationale]
+- **🚀 Roadmap:** [2-3 paragraphs with phased approach and execution timeline]
+- **🧠 Risks:** [2-3 paragraphs with key risks, mitigation strategies, and contingency plans]
 
 ## ⚡ BRUTAL TRUTH
 One sentence summarizing: "Your raw answer = X (reason). Reframed = Y (reason)."
+
+## 💎 COMPLETE MODEL ANSWER (How I Would Answer This Question)
+Now, here's how I would answer this question as a senior PM, from scratch:
+
+Provide a COMPREHENSIVE, ChatGPT-level answer that includes:
+- Full problem clarification (2-3 paragraphs)
+- Detailed user research and personas (3-4 paragraphs with tables if needed)
+- Complete product vision and strategy (2-3 paragraphs)
+- Comprehensive feature breakdown (4-5 paragraphs)
+- Detailed success metrics with rationale (2-3 paragraphs)
+- Full roadmap and execution plan (2-3 paragraphs)
+- Risk mitigation strategies (2-3 paragraphs)
+
+This should be 15-20 paragraphs total, matching ChatGPT's direct response quality.
 
 ---
 
 OUTPUT FORMAT (JSON):
 {
   "overall_score": 0-10,
-  "feedback_text": "Complete feedback in ChatGPT format with markdown formatting, emojis, arrows, and bold text. Include all sections: introduction, step-by-step analysis, strengths, areas to improve, reframed answer, and brutal truth. Use proper markdown: **bold**, • bullets, → arrows, emojis 🎯🧭💡👤🧩🧱⚙️📈🚀🧠✅⚠️🔥⚡",
+  "feedback_text": "Complete feedback in ChatGPT format with markdown formatting, emojis, arrows, and bold text. Include all sections: introduction, step-by-step analysis, strengths, areas to improve, reframed answer, brutal truth, and complete model answer. Use proper markdown: **bold**, • bullets, → arrows, emojis 🎯🧭💡👤🧩🧱⚙️📈🚀🧠✅⚠️🔥⚡💎",
   "strengths": [
     "Specific strength with example from answer",
     "Another strength with reasoning",
@@ -93,7 +110,7 @@ OUTPUT FORMAT (JSON):
   ],
   "reframed_answer": "Complete reframed answer with step-by-step structure like the example",
   "brutal_truth": "One sentence: 'Your raw answer = X. Reframed = Y.'",
-  "model_answer": "Alternative top-tier 10/10 answer showing advanced PM thinking with step-by-step structure"
+  "model_answer": "COMPREHENSIVE standalone answer (15-20 paragraphs) showing exactly how you would answer this question as a senior PM. Include all sections: problem clarification, user research, product vision, features, metrics, roadmap, risks. Make it as detailed as ChatGPT's direct responses with full explanations, examples, and reasoning for each point."
 }
 
 ---
@@ -106,10 +123,13 @@ TONE & STYLE:
 - Use specific examples from their answer
 - Compare weak parts to strong alternatives
 - Don't sugarcoat, but always show the path forward
-- Use emojis: 🎯🧭💡👤🧩🧱⚙️📈🚀🧠✅⚠️🔥⚡
+- Use emojis: 🎯🧭💡👤🧩🧱⚙️📈🚀🧠✅⚠️🔥⚡💎
 - Use bold text for emphasis: **text**
 - Use bullet points: • item
 - Make it comprehensive and detailed like the example
+- The model_answer should be ChatGPT-level comprehensive (1500-2000 words)
+- Think of model_answer as 'How would I answer this if someone asked me directly on ChatGPT?'
+- Don't summarize - provide FULL detailed explanations for everything
 
 STRICT RULES:
 - Always output pure JSON only
@@ -117,8 +137,11 @@ STRICT RULES:
 - Never say "great job" unless truly exceptional
 - Show them exactly what a 10/10 answer looks like
 - Use proper markdown formatting in feedback_text
-- Include all sections: introduction, step-by-step analysis, strengths, areas to improve, reframed answer, brutal truth
+- Include all sections: introduction, step-by-step analysis, strengths, areas to improve, reframed answer, brutal truth, complete model answer
 - Make it as detailed and structured as the example you provided
+- The model_answer field must be 15-20 paragraphs minimum
+- Each section in model_answer should have detailed explanations with examples
+- Match the depth and quality of ChatGPT's direct responses
 `;
 
 /**
