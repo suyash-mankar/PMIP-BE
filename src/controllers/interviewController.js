@@ -259,15 +259,19 @@ const getCategories = async (req, res, next) => {
       },
     });
 
-    // Format category names for display
-    const formattedCategories = categories.map(cat => ({
-      value: cat.category,
-      label: cat.category
-        .split('_')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' '),
-      count: cat._count.id,
-    }));
+    // Format category names for display and filter out unwanted categories
+    const unwantedCategories = ['project_management', 'customer_interaction', 'machine_learning'];
+    
+    const formattedCategories = categories
+      .filter(cat => !unwantedCategories.includes(cat.category))
+      .map(cat => ({
+        value: cat.category,
+        label: cat.category
+          .split('_')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' '),
+        count: cat._count.id,
+      }));
 
     res.json({
       categories: formattedCategories,
