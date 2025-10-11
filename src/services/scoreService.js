@@ -40,8 +40,8 @@ async function scoreSession(session) {
         if (scoreData.product_sense && scoreData.metrics && scoreData.prioritization) {
           totalScore = Math.round(
             (scoreData.product_sense +
-          scoreData.metrics +
-          scoreData.prioritization +
+              scoreData.metrics +
+              scoreData.prioritization +
               scoreData.structure +
               scoreData.communication +
               scoreData.user_empathy) /
@@ -225,20 +225,40 @@ async function scoreSession(session) {
       if (scoreData.dimension_scores && typeof scoreData.dimension_scores === 'object') {
         // New interviewer format with nested dimension_scores
         const dims = scoreData.dimension_scores;
-        
+
         // Map dimension_scores to database fields based on category
-        extractedScores.structure = dims.user_research?.score || dims.problem_framing?.score || dims.goal_clarity?.score || dims.framework_selection?.score || dims.market_analysis?.score || 0;
+        extractedScores.structure =
+          dims.user_research?.score ||
+          dims.problem_framing?.score ||
+          dims.goal_clarity?.score ||
+          dims.framework_selection?.score ||
+          dims.market_analysis?.score ||
+          0;
         extractedScores.metrics = dims.metrics?.score || dims.metric_selection?.score || 0;
-        extractedScores.prioritization = dims.prioritization?.score || dims.solution_prioritization?.score || dims.solution_ideation?.score || 0;
-        extractedScores.userEmpathy = dims.problem_definition?.score || dims.pain_point_identification?.score || 0;
-        extractedScores.communication = dims.execution?.score || dims.communication?.score || dims.calculation_logic?.score || 0;
+        extractedScores.prioritization =
+          dims.prioritization?.score ||
+          dims.solution_prioritization?.score ||
+          dims.solution_ideation?.score ||
+          0;
+        extractedScores.userEmpathy =
+          dims.problem_definition?.score || dims.pain_point_identification?.score || 0;
+        extractedScores.communication =
+          dims.execution?.score || dims.communication?.score || dims.calculation_logic?.score || 0;
       } else {
         // Old flat field format
-        extractedScores.structure = scoreData.structure || scoreData.user_centricity || scoreData.data_analysis || 0;
-        extractedScores.metrics = scoreData.metrics || scoreData.success_metrics || scoreData.metrics_selection || 0;
-        extractedScores.prioritization = scoreData.prioritization || scoreData.innovation || scoreData.actionable_insights || 0;
-        extractedScores.userEmpathy = scoreData.user_empathy || scoreData.user_experience || scoreData.business_impact || 0;
-        extractedScores.communication = scoreData.communication || scoreData.technical_feasibility || scoreData.statistical_understanding || 0;
+        extractedScores.structure =
+          scoreData.structure || scoreData.user_centricity || scoreData.data_analysis || 0;
+        extractedScores.metrics =
+          scoreData.metrics || scoreData.success_metrics || scoreData.metrics_selection || 0;
+        extractedScores.prioritization =
+          scoreData.prioritization || scoreData.innovation || scoreData.actionable_insights || 0;
+        extractedScores.userEmpathy =
+          scoreData.user_empathy || scoreData.user_experience || scoreData.business_impact || 0;
+        extractedScores.communication =
+          scoreData.communication ||
+          scoreData.technical_feasibility ||
+          scoreData.statistical_understanding ||
+          0;
       }
 
       // Save to database (mapping field names to existing schema)
@@ -271,8 +291,8 @@ async function scoreSession(session) {
           userId: session.userId,
           sessionId: session.id,
           eventType: 'openai_call',
-          metadata: JSON.stringify({ 
-            attempt: attempt + 1, 
+          metadata: JSON.stringify({
+            attempt: attempt + 1,
             success: true,
             totalScore,
           }),
@@ -292,8 +312,8 @@ async function scoreSession(session) {
           userId: session.userId,
           sessionId: session.id,
           eventType: 'error',
-          metadata: JSON.stringify({ 
-            attempt, 
+          metadata: JSON.stringify({
+            attempt,
             error: error.message,
             context: 'openai_scoring',
           }),

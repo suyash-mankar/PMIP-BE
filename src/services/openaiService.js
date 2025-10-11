@@ -27,13 +27,26 @@ Let me walk through your answer and give you specific feedback on what worked an
 **START YOUR FEEDBACK WITH THE OVERALL SCORE PROMINENTLY:**
 # Overall Score: X/10
 
-FORMAT YOUR FEEDBACK WITH MARKDOWN:
-- Use # for the overall score heading (most prominent)
-- Use ## for main section headings (e.g., ## DETAILED ANALYSIS, ## YOUR STRENGTHS)
-- Use ### for subsection headings within main sections
-- Use **bold** for key terms, issues, and important points
+**FORMAT YOUR FEEDBACK WITH MARKDOWN:**
+- Use ## for main section headings (DETAILED ANALYSIS, YOUR STRENGTHS, CRITICAL GAPS TO ADDRESS, BOTTOM LINE)
+- Use ### for subsection headings within sections (Step 1, Step 2, etc.)
+- Use **bold** for key terms, dimension names, issues, and important points
+- Use *italics* for emphasis and examples
 - Use - or • for bullet points
+- Use numbered lists when appropriate
 - Use proper paragraph breaks for readability
+
+**EXAMPLE FORMATTING:**
+## DETAILED ANALYSIS
+
+### Step 1: Problem Clarification
+**What you did:** You mentioned "users want faster checkout" but didn't clarify *which* users or *what specific friction* they face.
+
+**What was missing:** No user segmentation or data to validate the problem.
+
+**Impact:** Without user context, solutions risk being generic and miss the mark.
+
+---
 
 PROVIDE FEEDBACK WITH THIS STRUCTURE:
 
@@ -107,7 +120,7 @@ Here's what would hurt you in a real interview:
 OUTPUT FORMAT (JSON):
 {
   "overall_score": 0-10,
-  "feedback_text": "# Overall Score: X/10\n\n## DETAILED ANALYSIS\n\nI'm going to walk through your answer step-by-step...\n\n### Step 1: [aspect]\n- What you did: [specific]\n- What was missing: [specific]\n- Impact: [why it matters]\n\n[Continue for 5-8 steps]\n\n---\n\n## YOUR STRENGTHS\n\nI noticed these strong points...\n- [Strength 1 with example]\n- [Strength 2 with example]\n\n---\n\n## CRITICAL GAPS TO ADDRESS\n\nHere's what would hurt you...\n- [Gap 1]: [Why] → [What to do]\n- [Gap 2-6: continue]\n\n---\n\n## BOTTOM LINE\n\n[One sentence truth]",
+  "feedback_text": "# Overall Score: X/10\n\n## DETAILED ANALYSIS\n\nI'm going to walk through your answer step-by-step and show you what you did well and what you missed:\n\n### Step 1: [aspect]\n**What you did:** [specific quote or note]\n\n**What was missing:** [specific gap]\n\n**Impact:** [why it matters]\n\n### Step 2: [aspect]\n**What you did:** [specific]\n\n**What was missing:** [specific]\n\n**Impact:** [why it matters]\n\n[Continue for 5-8 steps with proper markdown]\n\n---\n\n## YOUR STRENGTHS\n\nI noticed these strong points in your answer:\n\n- **[Strength 1]:** [Concrete example]\n- **[Strength 2]:** [Another example]\n\n---\n\n## CRITICAL GAPS TO ADDRESS\n\nHere's what would hurt you in a real interview:\n\n- **[Gap 1]:** [Why it matters] → [What to do instead]\n- **[Gap 2]:** [Why it matters] → [What to do instead]\n\n---\n\n## BOTTOM LINE\n\n[One sentence truth]",
   "strengths": [
     "Specific strength with concrete example from answer",
     "Another strength with example",
@@ -129,19 +142,20 @@ TONE & STYLE:
 - Be direct and specific with examples from their actual answer
 - Quote their exact words when analyzing
 - Be encouraging but honest about gaps
-- Use markdown: # for score, ## headings, ### subsections, **bold**, • bullets
+- **CRITICAL: Use markdown in feedback_text** (## for sections, ### for steps, **bold**, *italics*, bullets)
 - Use → arrows for cause-effect in gaps section
 - Educational tone: most candidates score 6-7/10, not harsh 4-6/10
 
 STRICT RULES:
 - Always output pure JSON only
-- No markdown formatting inside JSON strings (use plain text)
+- **USE MARKDOWN FORMATTING IN feedback_text field** (## headings, ### subsections, **bold**, *italics*, bullets)
 - Be specific with examples (not "lacks depth" but "no success metrics defined - should specify X% increase in Y")
 - Gaps should be actionable (not generic platitudes)
 - Include 5-8 analysis steps depending on answer depth
 - Include 2-4 strengths and 3-6 gaps
 - Speak directly: "You did..." not "The candidate did..."
 - Educational standard: average 6-7/10, give 8+ only for genuinely impressive answers
+- **Format each step with proper paragraph breaks between What you did / What was missing / Impact**
 `;
 
 /**
@@ -220,10 +234,10 @@ function parseAndValidateScore(content) {
   const hasOldFormat = 'feedback' in parsed && 'model_answer' in parsed;
   const hasChatGPTFormat =
     'feedback_text' in parsed && 'reframed_answer' in parsed && 'brutal_truth' in parsed;
-  
+
   // Check for new interviewer-style format with dimension_scores object
-  const hasInterviewerFormat = 
-    'dimension_scores' in parsed && 
+  const hasInterviewerFormat =
+    'dimension_scores' in parsed &&
     typeof parsed.dimension_scores === 'object' &&
     'feedback_text' in parsed &&
     'gaps' in parsed;
@@ -387,7 +401,9 @@ function parseAndValidateScore(content) {
       if (typeof scoreObj === 'object' && scoreObj.score !== undefined) {
         const score = scoreObj.score;
         if (typeof score !== 'number' || score < 0 || score > 10) {
-          throw new Error(`Invalid dimension score for ${dimension}: must be a number between 0 and 10`);
+          throw new Error(
+            `Invalid dimension score for ${dimension}: must be a number between 0 and 10`
+          );
         }
       }
     }

@@ -89,6 +89,25 @@ ${answer}
 
 ---
 
+**FORMAT YOUR FEEDBACK WITH MARKDOWN:**
+- Use ## for main section headings (DETAILED ANALYSIS, YOUR STRENGTHS, CRITICAL GAPS TO ADDRESS, BOTTOM LINE)
+- Use ### for subsection headings within sections (Step 1, Step 2, etc.)
+- Use **bold** for key terms, dimension names, issues, and important points
+- Use *italics* for emphasis and examples
+- Use - or • for bullet points
+- Use numbered lists when appropriate
+- Use proper paragraph breaks for readability
+
+**EXAMPLE FORMATTING:**
+## DETAILED ANALYSIS
+
+### Step 1: Problem Clarification
+**What you did:** You mentioned "users want faster checkout" but didn't clarify *which* users or *what specific friction* they face.
+**What was missing:** No user segmentation or data to validate the problem.
+**Impact:** Without user context, solutions risk being generic.
+
+---
+
 YOUR ANSWER EVALUATION:
 
 Now let me walk through your answer and give you specific feedback on what worked and what didn't.
@@ -172,7 +191,7 @@ OUTPUT FORMAT (JSON):
       .map(key => `"${key}": { "score": 0-10, "rationale": "brief reason" }`)
       .join(',\n    ')}
   },
-  "feedback_text": "[Full markdown formatted feedback with ## headings, **bold**, bullets as shown above]",
+  "feedback_text": "Full markdown formatted feedback. MUST use:\n## for main sections (DETAILED ANALYSIS, YOUR STRENGTHS, CRITICAL GAPS TO ADDRESS, BOTTOM LINE)\n### for subsections (Step 1, Step 2)\n**bold** for key terms and issues\n*italics* for emphasis\n- or • for bullet points\nProper paragraph breaks",
   "strengths": [
     "Specific strength with concrete example",
     "Another strength with example",
@@ -196,15 +215,17 @@ TONE GUIDELINES:
 - Be encouraging but honest about gaps
 - Provide actionable advice, not generic platitudes
 - Educational tone: average score 6-7/10, not harsh FAANG standard
+- **CRITICAL: Use markdown formatting in feedback_text** (## headings, ### subsections, **bold**, *italics*, bullets)
 
 STRICT RULES:
 - Always output pure JSON only
-- No markdown formatting inside JSON strings (use plain text)
+- **USE MARKDOWN IN feedback_text field** (## for sections, ### for steps, **bold**, *italics*, bullets)
 - Be specific with dimension rationales (not "good structure" but "used CIRCLES framework effectively")
 - Gaps should be actionable (not "lacks depth" but "no success metrics defined - should specify X% increase in Y")
 - Overall score = weighted average of dimension scores
 - Include 5-8 analysis steps depending on answer depth
 - Include 2-4 strengths and 3-6 gaps
+- Speak directly: "You did..." not "The candidate did..."
 `;
 }
 
