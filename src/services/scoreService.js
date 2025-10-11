@@ -165,26 +165,24 @@ async function scoreSession(session) {
       // Format feedback based on response format
       let feedbackString;
 
-      if (scoreData.feedback_text && scoreData.reframed_answer && scoreData.brutal_truth) {
-        // ChatGPT format - use the formatted feedback_text directly
+      if (scoreData.feedback_text) {
+        // New interviewer-style format - use the formatted feedback_text directly
         feedbackString = scoreData.feedback_text;
-      } else if (scoreData.summary && scoreData.gaps && scoreData.improved_framework) {
-        // New 5-part format
-        const summarySection = scoreData.summary ? '📝 SUMMARY:\n' + scoreData.summary : '';
-
+      } else if (scoreData.strengths && scoreData.gaps) {
+        // Fallback: Format from strengths and gaps arrays
         const strengthsSection = Array.isArray(scoreData.strengths)
-          ? '\n\n✅ STRENGTHS:\n' + scoreData.strengths.map(s => `• ${s}`).join('\n')
+          ? '## YOUR STRENGTHS\n\n' + scoreData.strengths.map(s => `- ${s}`).join('\n')
           : '';
 
         const gapsSection = Array.isArray(scoreData.gaps)
-          ? "\n\n⚠️ GAPS / WHAT'S MISSING:\n" + scoreData.gaps.map(g => `• ${g}`).join('\n')
+          ? '\n\n## CRITICAL GAPS TO ADDRESS\n\n' + scoreData.gaps.map(g => `- ${g}`).join('\n')
           : '';
 
-        const frameworkSection = scoreData.improved_framework
-          ? '\n\n💡 IMPROVED FRAMEWORK:\n' + scoreData.improved_framework
+        const bottomLine = scoreData.brutal_truth
+          ? '\n\n## BOTTOM LINE\n\n' + scoreData.brutal_truth
           : '';
 
-        feedbackString = summarySection + strengthsSection + gapsSection + frameworkSection;
+        feedbackString = strengthsSection + gapsSection + bottomLine;
       } else if (scoreData.strengths && scoreData.weaknesses) {
         // Previous enhanced format with strengths/weaknesses/brutal_truth
         const strengthsSection = Array.isArray(scoreData.strengths)
