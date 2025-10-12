@@ -46,9 +46,22 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 PM Interview Practice API running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 Health check available at: http://0.0.0.0:${PORT}/api/health`);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', error => {
+  console.error('❌ Uncaught Exception:', error);
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', error => {
+  console.error('❌ Unhandled Rejection:', error);
+  process.exit(1);
 });
 
 module.exports = app;
