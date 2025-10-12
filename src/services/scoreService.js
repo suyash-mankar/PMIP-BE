@@ -40,8 +40,8 @@ async function scoreSession(session) {
         if (scoreData.product_sense && scoreData.metrics && scoreData.prioritization) {
           totalScore = Math.round(
             (scoreData.product_sense +
-              scoreData.metrics +
-              scoreData.prioritization +
+          scoreData.metrics +
+          scoreData.prioritization +
               scoreData.structure +
               scoreData.communication +
               scoreData.user_empathy) /
@@ -291,8 +291,8 @@ async function scoreSession(session) {
           userId: session.userId,
           sessionId: session.id,
           eventType: 'openai_call',
-          metadata: JSON.stringify({
-            attempt: attempt + 1,
+          metadata: JSON.stringify({ 
+            attempt: attempt + 1, 
             success: true,
             totalScore,
           }),
@@ -312,8 +312,8 @@ async function scoreSession(session) {
           userId: session.userId,
           sessionId: session.id,
           eventType: 'error',
-          metadata: JSON.stringify({
-            attempt,
+          metadata: JSON.stringify({ 
+            attempt, 
             error: error.message,
             context: 'openai_scoring',
           }),
