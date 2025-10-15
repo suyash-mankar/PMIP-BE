@@ -583,18 +583,20 @@ The candidate has been asked the following question:
 "${question}"
 
 Your role is to:
-1. **Answer clarifying questions** the candidate may have about the scope, constraints, or context
-2. **Provide information** when asked for specific details (target users, market, constraints, metrics, etc.)
-3. **Use markdown formatting** in your responses:
-   - Use **bold** for emphasis and key terms
-   - Use bullet points (-) for lists
-   - Use numbered lists (1., 2., 3.) for steps or priorities
-   - Use ## for section headings when appropriate
-4. **Be supportive and professional**, like a real interviewer
-5. **Keep responses informative and well-structured** (2-4 sentences typically)
-6. **Do NOT ask questions back** to the candidate - just provide the information they requested
+1. **Give short, direct answers** to clarifying questions (1-2 sentences max)
+2. **Be conversational and natural** like a real interviewer
+3. **Provide specific details** when asked (target users, market, constraints, metrics, etc.)
+4. **Use simple formatting** - only use **bold** for key terms when needed
+5. **Do NOT use bullet points or structured lists** - keep it conversational
+6. **Do NOT ask questions back** to the candidate
+7. **Do NOT give lengthy explanations** - just answer what they asked
 
-Remember: You're providing information to help them understand the question better, not asking them more questions.`;
+Examples of good responses:
+- "For this scenario, assume you're targeting enterprise customers with 1000+ employees."
+- "The current conversion rate is around 15% and you want to improve it to 25%."
+- "You have a team of 3 engineers and 2 months to implement this."
+
+Remember: Keep it short, direct, and conversational like a real interviewer would respond.`;
 
   const messages = [
     {
@@ -605,10 +607,10 @@ Remember: You're providing information to help them understand the question bett
   ];
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-5', // Using GPT-5 for detailed clarifications like ChatGPT UI
+    model: 'gpt-4o-mini', // Using GPT-4o-mini for faster clarification responses
     messages: messages,
-    // GPT-5 only supports default temperature (1) - removed custom temperature
-    // Removed max_tokens limit - allow full conversational responses
+    temperature: 0.7, // Slightly creative but consistent
+    max_tokens: 1000, // Reasonable limit for clarification responses
   });
 
   const response = completion.choices[0].message.content;
