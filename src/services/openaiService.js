@@ -120,7 +120,15 @@ Here's what would hurt you in a real interview:
 OUTPUT FORMAT (JSON):
 {
   "overall_score": 0-10,
-  "feedback_text": "# Overall Score: X/10\n\n## DETAILED ANALYSIS\n\nI'm going to walk through your answer step-by-step and show you what you did well and what you missed:\n\n### Step 1: [aspect]\n**What you did:** [specific quote or note]\n\n**What was missing:** [specific gap]\n\n**Impact:** [why it matters]\n\n### Step 2: [aspect]\n**What you did:** [specific]\n\n**What was missing:** [specific]\n\n**Impact:** [why it matters]\n\n[Continue for 5-8 steps with proper markdown]\n\n---\n\n## YOUR STRENGTHS\n\nI noticed these strong points in your answer:\n\n- **[Strength 1]:** [Concrete example]\n- **[Strength 2]:** [Another example]\n\n---\n\n## CRITICAL GAPS TO ADDRESS\n\nHere's what would hurt you in a real interview:\n\n- **[Gap 1]:** [Why it matters] → [What to do instead]\n- **[Gap 2]:** [Why it matters] → [What to do instead]\n\n---\n\n## BOTTOM LINE\n\n[One sentence truth]",
+  "summary_feedback": "Brief 2-3 sentence summary of your performance and main areas to focus on. Keep it concise and actionable.",
+  "detailed_feedback": "# Overall Score: X/10\n\n## DETAILED ANALYSIS\n\nI'm going to walk through your answer step-by-step and show you what you did well and what you missed:\n\n### Step 1: [aspect]\n**What you did:** [specific quote or note]\n\n**What was missing:** [specific gap]\n\n**Impact:** [why it matters]\n\n### Step 2: [aspect]\n**What you did:** [specific]\n\n**What was missing:** [specific]\n\n**Impact:** [why it matters]\n\n[Continue for 5-8 steps with proper markdown]\n\n---\n\n## YOUR STRENGTHS\n\nI noticed these strong points in your answer:\n\n- **[Strength 1]:** [Concrete example]\n- **[Strength 2]:** [Another example]\n\n---\n\n## CRITICAL GAPS TO ADDRESS\n\nHere's what would hurt you in a real interview:\n\n- **[Gap 1]:** [Why it matters] → [What to do instead]\n- **[Gap 2]:** [Why it matters] → [What to do instead]\n\n---\n\n## BOTTOM LINE\n\n[One sentence truth]",
+  "dimension_scores": {
+    "structure": 0-10,
+    "metrics": 0-10,
+    "prioritization": 0-10,
+    "user_empathy": 0-10,
+    "communication": 0-10
+  },
   "strengths": [
     "Specific strength with concrete example from answer",
     "Another strength with example",
@@ -189,6 +197,54 @@ async function callOpenAIForScoring(question, answer, customPrompt = null) {
   const tokensUsed = completion.usage.total_tokens;
 
   console.log('OpenAI Scoring Response Length:', content.length, 'characters');
+  console.log('Tokens Used:', tokensUsed);
+
+  return { content, tokensUsed };
+}
+
+/**
+ * Call OpenAI API to score an answer with summarised feedback (faster)
+ * @param {string} question - The interview question
+ * @param {string} answer - The candidate's answer
+ * @returns {Promise<Object>} Parsed score object with summarised feedback
+ */
+async function callOpenAIForSummarisedScoring(question, answer, customPrompt = null) {
+  const basePrompt = customPrompt || SCORING_PROMPT_TEMPLATE(question, answer);
+
+  // Add conciseness instructions to the prompt
+  const summarisedPrompt = basePrompt.replace(
+    'OUTPUT FORMAT (JSON):',
+    `IMPORTANT: Keep your feedback CONCISE. Each section should be 2-3 sentences maximum.
+- DETAILED ANALYSIS: 2-3 key points only (not 5-8 steps, just the most critical ones)
+- STRENGTHS: Top 2 strengths only
+- CRITICAL GAPS: Top 2-3 gaps only
+- BOTTOM LINE: 1 sentence
+
+OUTPUT FORMAT (JSON):`
+  );
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o-mini', // Using GPT-4o-mini for faster summarised feedback
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are a senior PM interviewer at a top-tier tech company. You are professional, sharp, analytical, and critical. Always respond with valid JSON only. Be brutally honest but CONCISE in your feedback.',
+      },
+      {
+        role: 'user',
+        content: summarisedPrompt,
+      },
+    ],
+    temperature: 0.7,
+    max_tokens: 2000, // Limit tokens for faster response
+    response_format: { type: 'json_object' }, // Enforce JSON mode
+  });
+
+  const content = completion.choices[0].message.content;
+  const tokensUsed = completion.usage.total_tokens;
+
+  console.log('OpenAI Summarised Scoring Response Length:', content.length, 'characters');
   console.log('Tokens Used:', tokensUsed);
 
   return { content, tokensUsed };
@@ -621,6 +677,7 @@ Remember: Keep it short, direct, and conversational like a real interviewer woul
 
 module.exports = {
   callOpenAIForScoring,
+  callOpenAIForSummarisedScoring,
   parseAndValidateScore,
   callOpenAIForClarification,
   generateModelAnswer,

@@ -1,5 +1,5 @@
 const prisma = require('../config/database');
-const { scoreSession } = require('../services/scoreService');
+const { scoreSession, scoreSessionSummarised } = require('../services/scoreService');
 const { callOpenAIForClarification, generateModelAnswer } = require('../services/openaiService');
 
 const startInterview = async (req, res, next) => {
@@ -128,6 +128,20 @@ const score = async (req, res, next) => {
       where: { sessionId },
     });
 
+    // If existing score is a summary, update it with detailed feedback
+    if (existingScore && existingScore.status === 'completed_summary') {
+      console.log('Updating summary score with detailed feedback...');
+
+      // Score the session using OpenAI for detailed feedback
+      const scoreResult = await scoreSession(session);
+
+      return res.json({
+        message: 'Session scored successfully with detailed feedback',
+        score: scoreResult,
+      });
+    }
+
+    // If already scored with detailed feedback, return it
     if (existingScore) {
       return res.json({
         message: 'Session already scored',
@@ -141,6 +155,51 @@ const score = async (req, res, next) => {
     res.json({
       message: 'Session scored successfully',
       score: scoreResult,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const scoreSummarised = async (req, res, next) => {
+  try {
+    const { sessionId } = req.body;
+
+    // Fetch session with question
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      include: { question: true },
+    });
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Verify ownership
+    if (session.userId !== req.user.id) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    // Check if already scored (look for any score for this session)
+    const existingScore = await prisma.score.findUnique({
+      where: { sessionId },
+    });
+
+    if (existingScore) {
+      return res.json({
+        message: 'Session already scored',
+        score: existingScore,
+        isSummary: existingScore.status === 'completed_summary',
+      });
+    }
+
+    // Score the session using OpenAI with summarised feedback
+    const scoreResult = await scoreSessionSummarised(session);
+
+    res.json({
+      message: 'Session scored successfully',
+      score: scoreResult,
+      isSummary: true,
     });
   } catch (error) {
     next(error);
@@ -322,6 +381,7 @@ module.exports = {
   startInterview,
   submitAnswer,
   score,
+  scoreSummarised,
   clarify,
   getSessions,
   getSessionById,
