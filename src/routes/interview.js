@@ -25,15 +25,9 @@ router.post('/start-interview', authMiddleware, validate(startInterviewSchema), 
 
 router.post('/submit-answer', authMiddleware, validate(submitAnswerSchema), submitAnswer);
 
-router.post('/score', authMiddleware, scoringLimiter, validate(scoreSchema), score);
+router.post('/score', authMiddleware, validate(scoreSchema), score);
 
-router.post(
-  '/score-summarised',
-  authMiddleware,
-  scoringLimiter,
-  validate(scoreSchema),
-  scoreSummarised
-);
+router.post('/score-summarised', authMiddleware, validate(scoreSchema), scoreSummarised);
 
 router.post('/clarify', authMiddleware, clarify);
 
