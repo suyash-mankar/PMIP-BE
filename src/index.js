@@ -3,6 +3,7 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
+const passport = require('./config/passport');
 
 const authRoutes = require('./routes/auth');
 const interviewRoutes = require('./routes/interview');
@@ -22,6 +23,9 @@ app.use(morgan('combined'));
 // Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Initialize Passport
+app.use(passport.initialize());
 
 // Rate limiting
 app.use(generalLimiter);

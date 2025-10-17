@@ -59,6 +59,14 @@ const login = async (req, res, next) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    // Check if user is a Google OAuth user without password
+    if (!user.password && user.provider === 'google') {
+      return res.status(400).json({
+        error: 'Please sign in with Google',
+        message: 'This account uses Google sign-in. Please use the "Sign in with Google" button.',
+      });
+    }
+
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
@@ -86,4 +94,29 @@ const login = async (req, res, next) => {
   }
 };
 
-module.exports = { register, login };
+// Google OAuth handlers
+const googleAuth = (req, res, next) => {
+  // This will be handled by passport middleware
+};
+
+const googleAuthCallback = async (req, res) => {
+  try {
+    const user = req.user;
+
+    // Generate JWT
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+
+    // Redirect to frontend with token
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}/auth/login?token=${token}`);
+  } catch (error) {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}/auth/login?error=Authentication failed`);
+  }
+};
+
+module.exports = { register, login, googleAuth, googleAuthCallback };

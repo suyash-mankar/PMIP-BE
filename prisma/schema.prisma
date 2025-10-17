@@ -13,7 +13,9 @@ datasource db {
 model User {
   id        Int       @id @default(autoincrement())
   email     String    @unique
-  password  String
+  password  String?
+  googleId  String?   @unique
+  provider  String    @default("email") // email, google
   role      String    @default("user") // user, admin
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -23,6 +25,7 @@ model User {
   events    Event[]
 
   @@index([email])
+  @@index([googleId])
 }
 
 model Question {
