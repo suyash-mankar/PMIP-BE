@@ -39,7 +39,7 @@
     "openai": "^4.20.1",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "stripe": "^14.9.0"
+    "razorpay": "^2.9.2"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",

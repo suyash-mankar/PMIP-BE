@@ -1,110 +1,205 @@
-const stripe = require('../config/stripe');
+const razorpay = require('../config/razorpay');
 const prisma = require('../config/database');
+const crypto = require('crypto');
 
+/**
+ * Create a Razorpay subscription for Pro plan
+ * Supports both USD and INR currencies
+ */
 const createCheckoutSession = async (req, res, next) => {
   try {
-    const { subscriptionType = 'basic' } = req.body;
+    const { currency = 'usd' } = req.body; // 'usd' or 'inr'
 
-    // Define pricing (you can make these env variables)
-    const prices = {
-      basic: { amount: 2900, name: 'Basic Plan' }, // $29.00
-      premium: { amount: 4900, name: 'Premium Plan' }, // $49.00
+    // Define pricing for different currencies
+    const pricing = {
+      usd: {
+        amount: 900, // $9 in cents
+        currency: 'USD',
+        planId: process.env.RAZORPAY_PLAN_ID_USD,
+        name: 'Pro Plan - USD',
+      },
+      inr: {
+        amount: 74900, // ₹749 in paise
+        currency: 'INR',
+        planId: process.env.RAZORPAY_PLAN_ID_INR,
+        name: 'Pro Plan - INR',
+      },
     };
 
-    const price = prices[subscriptionType];
-    if (!price) {
-      return res.status(400).json({ error: 'Invalid subscription type' });
+    const selectedPlan = pricing[currency.toLowerCase()];
+
+    if (!selectedPlan) {
+      return res.status(400).json({ error: 'Invalid currency. Use USD or INR.' });
     }
 
-    // Create Stripe Checkout Session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: price.name,
-              description: `PM Interview Practice - ${price.name}`,
-            },
-            unit_amount: price.amount,
-            recurring: {
-              interval: 'month',
-            },
-          },
-          quantity: 1,
-        },
-      ],
-      mode: 'subscription',
-      success_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/pricing`,
-      client_reference_id: req.user.id.toString(),
-      customer_email: req.user.email,
-      metadata: {
+    if (!selectedPlan.planId) {
+      console.error(`Razorpay plan ID not configured for ${currency}`);
+      return res.status(500).json({
+        error: 'Payment configuration error. Please contact support.',
+      });
+    }
+
+    // Create Razorpay subscription
+    const subscription = await razorpay.subscriptions.create({
+      plan_id: selectedPlan.planId,
+      customer_notify: 1,
+      total_count: 12, // 12 months (can be adjusted or made infinite)
+      notes: {
         userId: req.user.id.toString(),
-        subscriptionType,
+        email: req.user.email,
+        subscriptionType: 'pro',
       },
     });
 
-    // Create pending payment record
+    // Create pending payment record in database
     await prisma.payment.create({
       data: {
         userId: req.user.id,
-        stripeSessionId: session.id,
-        amount: price.amount,
-        currency: 'usd',
+        razorpaySubscriptionId: subscription.id,
+        amount: selectedPlan.amount,
+        currency: currency.toLowerCase(),
         status: 'pending',
-        subscriptionType,
+        subscriptionType: 'pro',
       },
     });
 
+    // Return subscription details to frontend
     res.json({
-      sessionId: session.id,
-      url: session.url,
+      subscriptionId: subscription.id,
+      amount: selectedPlan.amount,
+      currency: selectedPlan.currency,
+      planName: selectedPlan.name,
+      razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+      userEmail: req.user.email,
+      userName: req.user.email.split('@')[0], // Use email prefix as name
     });
   } catch (error) {
+    console.error('Create checkout session error:', error);
     next(error);
   }
 };
 
+/**
+ * Handle Razorpay webhook events
+ * Events: subscription.activated, subscription.charged, subscription.cancelled, payment.failed
+ */
 const handleWebhook = async (req, res, next) => {
-  const sig = req.headers['stripe-signature'];
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  const signature = req.headers['x-razorpay-signature'];
 
   if (!webhookSecret) {
-    console.error('STRIPE_WEBHOOK_SECRET not configured');
+    console.error('RAZORPAY_WEBHOOK_SECRET not configured');
     return res.status(500).json({ error: 'Webhook not configured' });
   }
 
-  let event;
-
   try {
     // Verify webhook signature
-    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-  } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
+    const expectedSignature = crypto
+      .createHmac('sha256', webhookSecret)
+      .update(JSON.stringify(req.body))
+      .digest('hex');
 
-  try {
-    // Handle the event
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object;
+    if (signature !== expectedSignature) {
+      console.error('Webhook signature verification failed');
+      return res.status(400).json({ error: 'Invalid signature' });
+    }
 
-        // Update payment record
+    const event = req.body;
+    const eventType = event.event;
+    const payload = event.payload;
+
+    console.log(`📥 Razorpay webhook received: ${eventType}`);
+
+    // Handle different webhook events
+    switch (eventType) {
+      case 'subscription.activated': {
+        const subscription = payload.subscription.entity;
+
+        // Update payment record to completed
+        const payment = await prisma.payment.findUnique({
+          where: { razorpaySubscriptionId: subscription.id },
+        });
+
+        if (payment) {
+          await prisma.payment.update({
+            where: { id: payment.id },
+            data: {
+              status: 'completed',
+              razorpayCustomerId: subscription.customer_id,
+              subscriptionEndDate: new Date(subscription.current_end * 1000), // Convert Unix timestamp
+            },
+          });
+
+          // Log event
+          await prisma.event.create({
+            data: {
+              userId: payment.userId,
+              eventType: 'webhook',
+              metadata: JSON.stringify({
+                type: 'subscription.activated',
+                subscriptionId: subscription.id,
+              }),
+            },
+          });
+
+          console.log(`✅ Subscription activated: ${subscription.id}`);
+        }
+        break;
+      }
+
+      case 'subscription.charged': {
+        const payment = payload.payment.entity;
+        const subscription = payload.subscription.entity;
+
+        // Find and update payment record
+        const existingPayment = await prisma.payment.findUnique({
+          where: { razorpaySubscriptionId: subscription.id },
+        });
+
+        if (existingPayment) {
+          await prisma.payment.update({
+            where: { id: existingPayment.id },
+            data: {
+              razorpayPaymentId: payment.id,
+              status: 'completed',
+              subscriptionEndDate: new Date(subscription.current_end * 1000),
+              updatedAt: new Date(),
+            },
+          });
+
+          // Log renewal
+          await prisma.event.create({
+            data: {
+              userId: existingPayment.userId,
+              eventType: 'webhook',
+              metadata: JSON.stringify({
+                type: 'subscription.charged',
+                subscriptionId: subscription.id,
+                paymentId: payment.id,
+                amount: payment.amount,
+              }),
+            },
+          });
+
+          console.log(`💰 Subscription charged: ${subscription.id}`);
+        }
+        break;
+      }
+
+      case 'subscription.cancelled': {
+        const subscription = payload.subscription.entity;
+
+        // Update payment status to cancelled
         await prisma.payment.updateMany({
-          where: { stripeSessionId: session.id },
+          where: { razorpaySubscriptionId: subscription.id },
           data: {
-            status: 'completed',
-            stripeCustomerId: session.customer,
-            subscriptionEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+            status: 'cancelled',
+            updatedAt: new Date(),
           },
         });
 
-        // Log event
         const payment = await prisma.payment.findUnique({
-          where: { stripeSessionId: session.id },
+          where: { razorpaySubscriptionId: subscription.id },
         });
 
         if (payment) {
@@ -113,30 +208,41 @@ const handleWebhook = async (req, res, next) => {
               userId: payment.userId,
               eventType: 'webhook',
               metadata: JSON.stringify({
-                type: 'checkout.session.completed',
-                sessionId: session.id,
+                type: 'subscription.cancelled',
+                subscriptionId: subscription.id,
               }),
             },
           });
         }
 
-        console.log(`✅ Payment completed for session ${session.id}`);
+        console.log(`❌ Subscription cancelled: ${subscription.id}`);
         break;
       }
 
-      case 'customer.subscription.deleted': {
-        const subscription = event.data.object;
-        // Handle subscription cancellation
-        await prisma.payment.updateMany({
-          where: { stripeCustomerId: subscription.customer },
-          data: { status: 'cancelled' },
-        });
-        console.log(`❌ Subscription cancelled for customer ${subscription.customer}`);
+      case 'payment.failed': {
+        const payment = payload.payment.entity;
+
+        // Try to find payment by notes or description
+        if (payment.notes && payment.notes.userId) {
+          await prisma.event.create({
+            data: {
+              userId: parseInt(payment.notes.userId),
+              eventType: 'webhook',
+              metadata: JSON.stringify({
+                type: 'payment.failed',
+                paymentId: payment.id,
+                reason: payment.error_description,
+              }),
+            },
+          });
+        }
+
+        console.log(`⚠️  Payment failed: ${payment.id}`);
         break;
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        console.log(`Unhandled webhook event: ${eventType}`);
     }
 
     res.json({ received: true });
@@ -146,4 +252,82 @@ const handleWebhook = async (req, res, next) => {
   }
 };
 
-module.exports = { createCheckoutSession, handleWebhook };
+/**
+ * Cancel a subscription
+ */
+const cancelSubscription = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    // Find active subscription
+    const payment = await prisma.payment.findFirst({
+      where: {
+        userId: userId,
+        status: 'completed',
+        subscriptionType: 'pro',
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!payment || !payment.razorpaySubscriptionId) {
+      return res.status(404).json({ error: 'No active subscription found' });
+    }
+
+    // Cancel subscription in Razorpay
+    await razorpay.subscriptions.cancel(payment.razorpaySubscriptionId, {
+      cancel_at_cycle_end: 1, // Cancel at end of billing period
+    });
+
+    res.json({
+      message: 'Subscription will be cancelled at the end of the current billing period',
+      subscriptionEndDate: payment.subscriptionEndDate,
+    });
+  } catch (error) {
+    console.error('Cancel subscription error:', error);
+    next(error);
+  }
+};
+
+/**
+ * Get user's subscription status
+ */
+const getSubscriptionStatus = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    const payment = await prisma.payment.findFirst({
+      where: {
+        userId: userId,
+        status: 'completed',
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!payment) {
+      return res.json({
+        subscriptionType: 'free',
+        status: 'inactive',
+      });
+    }
+
+    const isActive = payment.subscriptionEndDate && payment.subscriptionEndDate > new Date();
+
+    res.json({
+      subscriptionType: isActive ? payment.subscriptionType : 'free',
+      status: isActive ? 'active' : 'expired',
+      subscriptionEndDate: payment.subscriptionEndDate,
+      currency: payment.currency,
+      amount: payment.amount,
+    });
+  } catch (error) {
+    console.error('Get subscription status error:', error);
+    next(error);
+  }
+};
+
+module.exports = {
+  createCheckoutSession,
+  handleWebhook,
+  cancelSubscription,
+  getSubscriptionStatus,
+};
