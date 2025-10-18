@@ -26,8 +26,7 @@ const scoreSchema = Joi.object({
 });
 
 const createCheckoutSchema = Joi.object({
-  priceId: Joi.string().optional(),
-  subscriptionType: Joi.string().valid('basic', 'premium').default('basic'),
+  currency: Joi.string().valid('usd', 'inr').default('inr'),
 });
 
 const validate = schema => {

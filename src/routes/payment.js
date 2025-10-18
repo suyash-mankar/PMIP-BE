@@ -12,7 +12,7 @@ const router = express.Router();
 
 // Create Razorpay subscription
 router.post(
-  '/create-checkout-session',
+  '/payment/create-checkout-session',
   authMiddleware,
   validate(createCheckoutSchema),
   createCheckoutSession
@@ -20,7 +20,7 @@ router.post(
 
 // Razorpay webhook - must use raw body
 router.post(
-  '/webhook/razorpay',
+  '/payment/webhook/razorpay',
   express.json({
     verify: (req, res, buf) => {
       req.rawBody = buf;
@@ -30,9 +30,9 @@ router.post(
 );
 
 // Cancel subscription
-router.post('/cancel-subscription', authMiddleware, cancelSubscription);
+router.post('/payment/cancel-subscription', authMiddleware, cancelSubscription);
 
 // Get subscription status
-router.get('/subscription-status', authMiddleware, getSubscriptionStatus);
+router.get('/payment/subscription-status', authMiddleware, getSubscriptionStatus);
 
 module.exports = router;

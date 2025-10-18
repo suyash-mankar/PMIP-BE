@@ -19,7 +19,7 @@ const createCheckoutSession = async (req, res, next) => {
         name: 'Pro Plan - USD',
       },
       inr: {
-        amount: 74900, // ₹749 in paise
+        amount: 49900, // Rs. 499 in paise
         currency: 'INR',
         planId: process.env.RAZORPAY_PLAN_ID_INR,
         name: 'Pro Plan - INR',
