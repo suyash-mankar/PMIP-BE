@@ -70,7 +70,75 @@ const transcribeAudio = async (req, res, next) => {
   }
 };
 
+/**
+ * Generate speech from text using OpenAI TTS
+ */
+const textToSpeech = async (req, res, next) => {
+  try {
+    let { text, voice = 'nova' } = req.body;
+
+    if (!text) {
+      return res.status(400).json({ error: 'No text provided' });
+    }
+
+    // OpenAI TTS has a 4096 character limit
+    const MAX_CHARS = 4096;
+
+    // If text is too long, truncate it with an ellipsis
+    if (text.length > MAX_CHARS) {
+      console.log(`⚠️  Text too long (${text.length} chars), truncating to ${MAX_CHARS} chars`);
+      // Try to truncate at a sentence boundary
+      text = text.substring(0, MAX_CHARS - 50); // Leave room for ellipsis
+      const lastPeriod = text.lastIndexOf('.');
+      const lastQuestion = text.lastIndexOf('?');
+      const lastExclamation = text.lastIndexOf('!');
+      const lastSentence = Math.max(lastPeriod, lastQuestion, lastExclamation);
+
+      if (lastSentence > MAX_CHARS * 0.8) {
+        // If we found a sentence ending in the last 20%, use it
+        text = text.substring(0, lastSentence + 1);
+      } else {
+        // Otherwise just truncate and add ellipsis
+        text = text + '...';
+      }
+    }
+
+    console.log(
+      `🔊 Generating speech for text (${text.length} chars):`,
+      text.substring(0, 50) + '...'
+    );
+
+    // Call OpenAI TTS API
+    const mp3 = await openai.audio.speech.create({
+      model: 'tts-1', // Use 'tts-1-hd' for higher quality (more expensive)
+      voice: voice, // Options: alloy, echo, fable, onyx, nova, shimmer
+      input: text,
+      response_format: 'mp3',
+      speed: 1.0, // 0.25 to 4.0
+    });
+
+    // Convert response to buffer
+    const buffer = Buffer.from(await mp3.arrayBuffer());
+
+    console.log('✅ Speech generated successfully');
+
+    // Set headers for audio streaming
+    res.set({
+      'Content-Type': 'audio/mpeg',
+      'Content-Length': buffer.length,
+      'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+    });
+
+    // Send audio buffer
+    res.send(buffer);
+  } catch (error) {
+    console.error('❌ Text-to-speech error:', error);
+    next(error);
+  }
+};
+
 module.exports = {
   transcribeAudio,
+  textToSpeech,
   upload,
 };
