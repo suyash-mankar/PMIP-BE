@@ -52,6 +52,7 @@ model Session {
   questionId  Int
   answerText  String    @db.Text
   transcript  String?   @db.Text // Future use for voice transcripts
+  timeTaken   Int?      // Time in seconds (nullable for backward compatibility)
   status      String    @default("submitted") // submitted, scored, needs_review
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

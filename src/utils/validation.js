@@ -15,9 +15,10 @@ const startInterviewSchema = Joi.object({
 });
 
 const submitAnswerSchema = Joi.object({
-  sessionId: Joi.number().integer().positive().optional(),
+  sessionId: Joi.number().integer().positive().optional().allow(null),
   questionId: Joi.number().integer().positive().required(),
   answerText: Joi.string().min(10).required(),
+  timeTaken: Joi.number().integer().min(0).optional().allow(null),
 });
 
 const scoreSchema = Joi.object({

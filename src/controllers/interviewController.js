@@ -97,13 +97,16 @@ const startInterview = async (req, res, next) => {
 
 const submitAnswer = async (req, res, next) => {
   try {
-    const { questionId, answerText, sessionId } = req.body;
+    const { questionId, answerText, sessionId, timeTaken } = req.body;
 
     // If sessionId provided, update existing session
     if (sessionId) {
       const session = await prisma.session.update({
         where: { id: sessionId },
-        data: { answerText },
+        data: {
+          answerText,
+          timeTaken,
+        },
       });
       return res.json({ sessionId: session.id, message: 'Answer updated' });
     }
@@ -123,6 +126,7 @@ const submitAnswer = async (req, res, next) => {
         userId: req.user.id,
         questionId,
         answerText,
+        timeTaken,
         status: 'submitted',
       },
     });
@@ -133,7 +137,7 @@ const submitAnswer = async (req, res, next) => {
         userId: req.user.id,
         sessionId: session.id,
         eventType: 'answer_submitted',
-        metadata: JSON.stringify({ questionId }),
+        metadata: JSON.stringify({ questionId, timeTaken }),
       },
     });
 
