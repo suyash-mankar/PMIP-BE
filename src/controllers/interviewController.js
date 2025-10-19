@@ -6,8 +6,20 @@ const startInterview = async (req, res, next) => {
   try {
     const { category } = req.body;
 
+    // Get all question IDs already viewed by this user
+    const viewedQuestions = await prisma.questionView.findMany({
+      where: { userId: req.user.id },
+      select: { questionId: true },
+    });
+
+    const viewedQuestionIds = viewedQuestions.map(v => v.questionId);
+
     // Build query conditions
-    const whereClause = {};
+    const whereClause = {
+      id: {
+        notIn: viewedQuestionIds, // Exclude already viewed questions
+      },
+    };
     if (category) whereClause.category = category;
 
     // Get random question for the specified criteria
@@ -15,15 +27,47 @@ const startInterview = async (req, res, next) => {
       where: whereClause,
     });
 
+    // If no unviewed questions, check if there are any questions at all
     if (questions.length === 0) {
-      const errorMessage = category
-        ? `No questions found for category: ${category}`
-        : `No questions found`;
-      return res.status(404).json({ error: errorMessage });
+      const totalQuestions = await prisma.question.count({
+        where: category ? { category } : {},
+      });
+
+      if (totalQuestions === 0) {
+        const errorMessage = category
+          ? `No questions found for category: ${category}`
+          : `No questions found`;
+        return res.status(404).json({ error: errorMessage });
+      } else {
+        // All questions in this category have been viewed
+        return res.status(404).json({
+          error: 'All questions in this category have been completed',
+          allCompleted: true,
+          totalViewed: viewedQuestionIds.length,
+          categoryTotal: totalQuestions,
+        });
+      }
     }
 
     const randomIndex = Math.floor(Math.random() * questions.length);
     const question = questions[randomIndex];
+
+    // Record that user has viewed this question
+    await prisma.questionView.upsert({
+      where: {
+        userId_questionId: {
+          userId: req.user.id,
+          questionId: question.id,
+        },
+      },
+      create: {
+        userId: req.user.id,
+        questionId: question.id,
+      },
+      update: {
+        viewedAt: new Date(),
+      },
+    });
 
     // Log event
     await prisma.event.create({

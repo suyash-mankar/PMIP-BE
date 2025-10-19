@@ -298,12 +298,13 @@ function parseAndValidateScore(content) {
     'feedback_text' in parsed &&
     'gaps' in parsed;
 
-  const requiredFields = ['overall_score'];
+  // Build required fields based on format detected
+  const requiredFields = [];
 
   if (hasChatGPTFormat) {
-    requiredFields.push('feedback_text', 'reframed_answer', 'brutal_truth');
+    requiredFields.push('dimension_scores', 'feedback_text', 'reframed_answer', 'brutal_truth');
   } else if (hasInterviewerFormat) {
-    requiredFields.push('feedback_text', 'dimension_scores', 'strengths', 'gaps', 'brutal_truth');
+    requiredFields.push('dimension_scores', 'feedback_text', 'strengths', 'gaps', 'brutal_truth');
   } else if (has5PartFormat) {
     requiredFields.push('summary', 'strengths', 'gaps', 'improved_framework', 'model_answer');
   } else if (hasEnhancedFormat) {
@@ -317,7 +318,19 @@ function parseAndValidateScore(content) {
   } else if (hasOldFormat) {
     requiredFields.push('feedback', 'model_answer');
   } else {
-    requiredFields.push('feedback', 'model_answer'); // Default to old format requirements
+    // For other formats (including summarised), require overall_score and feedback
+    requiredFields.push('overall_score');
+    const hasFeedback = parsed.summary_feedback || parsed.detailed_feedback || parsed.feedback;
+    if (!hasFeedback) {
+      requiredFields.push('feedback'); // Will fail validation if no feedback provided
+    }
+  }
+
+  // Log warning if dimension_scores is missing (we prefer it for accurate scoring)
+  if (!parsed.dimension_scores && parsed.overall_score) {
+    console.warn(
+      '⚠️  AI response missing dimension_scores - will use overall_score fallback. This may affect scoring accuracy.'
+    );
   }
 
   // Check for old field format
@@ -415,7 +428,10 @@ function parseAndValidateScore(content) {
       key => typeof parsed[key] === 'number' && key !== 'overall_score'
     );
 
-    if (scoringFields.length === 0) {
+    // Check if we have overall_score as a fallback
+    const hasOverallScore = 'overall_score' in parsed && typeof parsed.overall_score === 'number';
+
+    if (scoringFields.length === 0 && !hasOverallScore) {
       console.error('VALIDATION ERROR - Received keys:', Object.keys(parsed));
       console.error('VALIDATION ERROR - Full response:', JSON.stringify(parsed, null, 2));
       throw new Error(
@@ -425,11 +441,16 @@ function parseAndValidateScore(content) {
       );
     }
 
-    // If we have scoring fields but they don't match known formats, log a warning but allow it
-    console.warn(
-      'WARNING: Unknown field format detected, using fallback scoring. Fields:',
-      Object.keys(parsed)
-    );
+    if (scoringFields.length === 0 && hasOverallScore) {
+      // Valid summarised format with only overall_score
+      console.log('✅ Summarised format detected: overall_score only (no dimension breakdown)');
+    } else if (scoringFields.length > 0) {
+      // If we have scoring fields but they don't match known formats, log a warning but allow it
+      console.warn(
+        'WARNING: Unknown field format detected, using fallback scoring. Fields:',
+        Object.keys(parsed)
+      );
+    }
   }
 
   for (const field of requiredFields) {

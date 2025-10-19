@@ -5,6 +5,7 @@ const {
   parseAndValidateScore,
 } = require('./openaiService');
 const { getCategoryScoringPrompt } = require('./categoryScoringService');
+const { calculateWeightedScore } = require('../utils/scoringUtils');
 
 const MAX_RETRIES = 2;
 
@@ -36,8 +37,74 @@ async function scoreSession(session) {
       // Parse and validate
       const scoreData = parseAndValidateScore(content);
 
-      // Use overall_score from AI if available, otherwise calculate average
-      let totalScore = scoreData.overall_score;
+      // Extract dimension scores from the response (ALWAYS required now)
+      let extractedScores = {
+        structure: 0,
+        metrics: 0,
+        prioritization: 0,
+        userEmpathy: 0,
+        communication: 0,
+      };
+
+      if (scoreData.dimension_scores && typeof scoreData.dimension_scores === 'object') {
+        // New format with nested dimension_scores
+        const dims = scoreData.dimension_scores;
+
+        // Extract scores (handle both nested {score: X} format and direct number format)
+        // Also handle category-specific dimension names
+        extractedScores.structure =
+          dims.structure?.score ||
+          dims.structure ||
+          dims.user_research?.score ||
+          dims.problem_framing?.score ||
+          dims.goal_clarity?.score ||
+          dims.framework_selection?.score ||
+          dims.market_analysis?.score ||
+          0;
+        extractedScores.metrics =
+          dims.metrics?.score || dims.metrics || dims.metric_selection?.score || 0;
+        extractedScores.prioritization =
+          dims.prioritization?.score ||
+          dims.prioritization ||
+          dims.solution_prioritization?.score ||
+          dims.solution_ideation?.score ||
+          0;
+        extractedScores.userEmpathy =
+          dims.user_empathy?.score ||
+          dims.user_empathy ||
+          dims.problem_definition?.score ||
+          dims.pain_point_identification?.score ||
+          0;
+        extractedScores.communication =
+          dims.communication?.score ||
+          dims.communication ||
+          dims.execution?.score ||
+          dims.calculation_logic?.score ||
+          0;
+      }
+
+      // Calculate overall score using weighted average from individual parameters
+      let totalScore = calculateWeightedScore(extractedScores);
+
+      // If weighted score is 0 (no dimension scores provided), fall back to old calculation methods
+      if (!totalScore) {
+        // Try to use AI's overall_score if provided
+        totalScore = scoreData.overall_score;
+
+        // If we have an overall_score but no dimension scores, distribute it equally for display
+        if (totalScore > 0) {
+          extractedScores = {
+            structure: totalScore,
+            metrics: totalScore,
+            prioritization: totalScore,
+            userEmpathy: totalScore,
+            communication: totalScore,
+          };
+          console.log(
+            `⚠️  Using overall_score fallback (${totalScore}) - distributing equally to all parameters`
+          );
+        }
+      }
 
       if (!totalScore) {
         // Handle old field format
@@ -222,58 +289,6 @@ async function scoreSession(session) {
         feedbackString = scoreData.feedback || 'No feedback provided';
       }
 
-      // Extract dimension scores from nested structure if present
-      let extractedScores = {
-        structure: 0,
-        metrics: 0,
-        prioritization: 0,
-        userEmpathy: 0,
-        communication: 0,
-      };
-
-      if (scoreData.dimension_scores && typeof scoreData.dimension_scores === 'object') {
-        // New interviewer format with nested dimension_scores
-        const dims = scoreData.dimension_scores;
-
-        // Map dimension_scores to database fields based on category
-        extractedScores.structure =
-          dims.structure?.score ||
-          dims.user_research?.score ||
-          dims.problem_framing?.score ||
-          dims.goal_clarity?.score ||
-          dims.framework_selection?.score ||
-          dims.market_analysis?.score ||
-          0;
-        extractedScores.metrics = dims.metrics?.score || dims.metric_selection?.score || 0;
-        extractedScores.prioritization =
-          dims.prioritization?.score ||
-          dims.solution_prioritization?.score ||
-          dims.solution_ideation?.score ||
-          0;
-        extractedScores.userEmpathy =
-          dims.user_empathy?.score ||
-          dims.problem_definition?.score ||
-          dims.pain_point_identification?.score ||
-          0;
-        extractedScores.communication =
-          dims.communication?.score || dims.execution?.score || dims.calculation_logic?.score || 0;
-      } else {
-        // Old flat field format
-        extractedScores.structure =
-          scoreData.structure || scoreData.user_centricity || scoreData.data_analysis || 0;
-        extractedScores.metrics =
-          scoreData.metrics || scoreData.success_metrics || scoreData.metrics_selection || 0;
-        extractedScores.prioritization =
-          scoreData.prioritization || scoreData.innovation || scoreData.actionable_insights || 0;
-        extractedScores.userEmpathy =
-          scoreData.user_empathy || scoreData.user_experience || scoreData.business_impact || 0;
-        extractedScores.communication =
-          scoreData.communication ||
-          scoreData.technical_feasibility ||
-          scoreData.statistical_understanding ||
-          0;
-      }
-
       // Check if there's an existing summary score to update
       const existingScore = await prisma.score.findUnique({
         where: { sessionId: session.id },
@@ -302,8 +317,9 @@ async function scoreSession(session) {
         });
       } else {
         // Create new score (no existing summary)
-        score = await prisma.score.create({
-          data: {
+        score = await prisma.score.upsert({
+          where: { sessionId: session.id },
+          create: {
             sessionId: session.id,
             structure: extractedScores.structure,
             metrics: extractedScores.metrics,
@@ -311,6 +327,20 @@ async function scoreSession(session) {
             userEmpathy: extractedScores.userEmpathy,
             communication: extractedScores.communication,
             // Store both summary and detailed feedback in a structured format
+            feedback: summaryFeedback
+              ? `SUMMARY: ${summaryFeedback}\n\n---\n\nDETAILED:\n${feedbackString}`
+              : feedbackString,
+            sampleAnswer: scoreData.reframed_answer || '',
+            totalScore,
+            tokensUsed,
+            status: 'completed',
+          },
+          update: {
+            structure: extractedScores.structure,
+            metrics: extractedScores.metrics,
+            prioritization: extractedScores.prioritization,
+            userEmpathy: extractedScores.userEmpathy,
+            communication: extractedScores.communication,
             feedback: summaryFeedback
               ? `SUMMARY: ${summaryFeedback}\n\n---\n\nDETAILED:\n${feedbackString}`
               : feedbackString,
@@ -373,9 +403,22 @@ async function scoreSession(session) {
   // All retries failed - flag session for review
   console.error(`All scoring attempts failed for session ${session.id}`);
 
-  const score = await prisma.score.create({
-    data: {
+  const score = await prisma.score.upsert({
+    where: { sessionId: session.id },
+    create: {
       sessionId: session.id,
+      structure: 0,
+      metrics: 0,
+      prioritization: 0,
+      userEmpathy: 0,
+      communication: 0,
+      feedback: 'Automated scoring failed. This session has been flagged for manual review.',
+      sampleAnswer: '',
+      totalScore: 0,
+      tokensUsed: 0,
+      status: 'needs_review',
+    },
+    update: {
       structure: 0,
       metrics: 0,
       prioritization: 0,
@@ -425,8 +468,74 @@ async function scoreSessionSummarised(session) {
       // Parse and validate
       const scoreData = parseAndValidateScore(content);
 
-      // Use overall_score from AI if available, otherwise calculate average
-      let totalScore = scoreData.overall_score;
+      // Extract dimension scores from the response (ALWAYS required now)
+      let extractedScores = {
+        structure: 0,
+        metrics: 0,
+        prioritization: 0,
+        userEmpathy: 0,
+        communication: 0,
+      };
+
+      if (scoreData.dimension_scores && typeof scoreData.dimension_scores === 'object') {
+        // New format with nested dimension_scores
+        const dims = scoreData.dimension_scores;
+
+        // Extract scores (handle both nested {score: X} format and direct number format)
+        // Also handle category-specific dimension names
+        extractedScores.structure =
+          dims.structure?.score ||
+          dims.structure ||
+          dims.user_research?.score ||
+          dims.problem_framing?.score ||
+          dims.goal_clarity?.score ||
+          dims.framework_selection?.score ||
+          dims.market_analysis?.score ||
+          0;
+        extractedScores.metrics =
+          dims.metrics?.score || dims.metrics || dims.metric_selection?.score || 0;
+        extractedScores.prioritization =
+          dims.prioritization?.score ||
+          dims.prioritization ||
+          dims.solution_prioritization?.score ||
+          dims.solution_ideation?.score ||
+          0;
+        extractedScores.userEmpathy =
+          dims.user_empathy?.score ||
+          dims.user_empathy ||
+          dims.problem_definition?.score ||
+          dims.pain_point_identification?.score ||
+          0;
+        extractedScores.communication =
+          dims.communication?.score ||
+          dims.communication ||
+          dims.execution?.score ||
+          dims.calculation_logic?.score ||
+          0;
+      }
+
+      // Calculate overall score using weighted average from individual parameters
+      let totalScore = calculateWeightedScore(extractedScores);
+
+      // If weighted score is 0 (no dimension scores provided), fall back to old calculation methods
+      if (!totalScore) {
+        // Try to use AI's overall_score if provided
+        totalScore = scoreData.overall_score;
+
+        // If we have an overall_score but no dimension scores, distribute it equally for display
+        if (totalScore > 0) {
+          extractedScores = {
+            structure: totalScore,
+            metrics: totalScore,
+            prioritization: totalScore,
+            userEmpathy: totalScore,
+            communication: totalScore,
+          };
+          console.log(
+            `⚠️  Using overall_score fallback (${totalScore}) - distributing equally to all parameters`
+          );
+        }
+      }
 
       if (!totalScore) {
         // Handle old field format
@@ -575,61 +684,10 @@ async function scoreSessionSummarised(session) {
         feedbackString = scoreData.feedback || 'No feedback provided';
       }
 
-      // Extract dimension scores from nested structure if present
-      let extractedScores = {
-        structure: 0,
-        metrics: 0,
-        prioritization: 0,
-        userEmpathy: 0,
-        communication: 0,
-      };
-
-      if (scoreData.dimension_scores && typeof scoreData.dimension_scores === 'object') {
-        // New interviewer format with nested dimension_scores
-        const dims = scoreData.dimension_scores;
-
-        // Map dimension_scores to database fields based on category
-        extractedScores.structure =
-          dims.structure?.score ||
-          dims.user_research?.score ||
-          dims.problem_framing?.score ||
-          dims.goal_clarity?.score ||
-          dims.framework_selection?.score ||
-          dims.market_analysis?.score ||
-          0;
-        extractedScores.metrics = dims.metrics?.score || dims.metric_selection?.score || 0;
-        extractedScores.prioritization =
-          dims.prioritization?.score ||
-          dims.solution_prioritization?.score ||
-          dims.solution_ideation?.score ||
-          0;
-        extractedScores.userEmpathy =
-          dims.user_empathy?.score ||
-          dims.problem_definition?.score ||
-          dims.pain_point_identification?.score ||
-          0;
-        extractedScores.communication =
-          dims.communication?.score || dims.execution?.score || dims.calculation_logic?.score || 0;
-      } else {
-        // Old flat field format
-        extractedScores.structure =
-          scoreData.structure || scoreData.user_centricity || scoreData.data_analysis || 0;
-        extractedScores.metrics =
-          scoreData.metrics || scoreData.success_metrics || scoreData.metrics_selection || 0;
-        extractedScores.prioritization =
-          scoreData.prioritization || scoreData.innovation || scoreData.actionable_insights || 0;
-        extractedScores.userEmpathy =
-          scoreData.user_empathy || scoreData.user_experience || scoreData.business_impact || 0;
-        extractedScores.communication =
-          scoreData.communication ||
-          scoreData.technical_feasibility ||
-          scoreData.statistical_understanding ||
-          0;
-      }
-
       // Save to database (marking as summarised score)
-      const score = await prisma.score.create({
-        data: {
+      const score = await prisma.score.upsert({
+        where: { sessionId: session.id },
+        create: {
           sessionId: session.id,
           structure: extractedScores.structure,
           metrics: extractedScores.metrics,
@@ -641,6 +699,18 @@ async function scoreSessionSummarised(session) {
           totalScore,
           tokensUsed,
           status: 'completed_summary', // Mark as summarised score
+        },
+        update: {
+          structure: extractedScores.structure,
+          metrics: extractedScores.metrics,
+          prioritization: extractedScores.prioritization,
+          userEmpathy: extractedScores.userEmpathy,
+          communication: extractedScores.communication,
+          feedback: feedbackString,
+          sampleAnswer: scoreData.reframed_answer || '',
+          totalScore,
+          tokensUsed,
+          status: 'completed_summary',
         },
       });
 
@@ -676,9 +746,22 @@ async function scoreSessionSummarised(session) {
   }
 
   // All retries failed - create placeholder score
-  const score = await prisma.score.create({
-    data: {
+  const score = await prisma.score.upsert({
+    where: { sessionId: session.id },
+    create: {
       sessionId: session.id,
+      structure: 0,
+      metrics: 0,
+      prioritization: 0,
+      userEmpathy: 0,
+      communication: 0,
+      feedback: 'Automated scoring failed. This session has been flagged for manual review.',
+      sampleAnswer: '',
+      totalScore: 0,
+      tokensUsed: 0,
+      status: 'needs_review',
+    },
+    update: {
       structure: 0,
       metrics: 0,
       prioritization: 0,

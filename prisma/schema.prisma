@@ -11,34 +11,36 @@ datasource db {
 }
 
 model User {
-  id        Int       @id @default(autoincrement())
-  email     String    @unique
-  password  String?
-  googleId  String?   @unique
-  provider  String    @default("email") // email, google
-  role      String    @default("user") // user, admin
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id            Int             @id @default(autoincrement())
+  email         String          @unique
+  password      String?
+  googleId      String?         @unique
+  provider      String          @default("email") // email, google
+  role          String          @default("user") // user, admin
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
   
-  sessions  Session[]
-  payments  Payment[]
-  events    Event[]
+  sessions      Session[]
+  payments      Payment[]
+  events        Event[]
+  questionViews QuestionView[]
 
   @@index([email])
   @@index([googleId])
 }
 
 model Question {
-  id          Int       @id @default(autoincrement())
-  text        String    @db.Text
-  category    String    // Categories from NextLeap: Guesstimates, Product Design, Metrics, Product Strategy, Root Cause Analysis, etc.
-  tags        String?   @db.Text // JSON array as string - additional metadata
-  source      String    @default("nextleap") // nextleap, curated, user_generated
-  company     String?   @db.Text // JSON array of companies where question was asked
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id          Int             @id @default(autoincrement())
+  text        String          @db.Text
+  category    String          // Categories from NextLeap: Guesstimates, Product Design, Metrics, Product Strategy, Root Cause Analysis, etc.
+  tags        String?         @db.Text // JSON array as string - additional metadata
+  source      String          @default("nextleap") // nextleap, curated, user_generated
+  company     String?         @db.Text // JSON array of companies where question was asked
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
   sessions    Session[]
+  views       QuestionView[]
 
   @@index([category])
   @@index([source])
@@ -121,4 +123,18 @@ model Event {
   @@index([sessionId])
   @@index([eventType])
   @@index([createdAt])
+}
+
+model QuestionView {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  questionId  Int
+  viewedAt    DateTime  @default(now())
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question    Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questionId])
+  @@index([userId])
+  @@index([questionId])
 }
