@@ -9,6 +9,7 @@ const authRoutes = require('./routes/auth');
 const interviewRoutes = require('./routes/interview');
 const paymentRoutes = require('./routes/payment');
 const adminRoutes = require('./routes/admin');
+const voiceRoutes = require('./routes/voice');
 const errorHandler = require('./middlewares/errorHandler');
 const { generalLimiter } = require('./middlewares/rateLimiter');
 
@@ -40,6 +41,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api', interviewRoutes);
 app.use('/api', paymentRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/voice', voiceRoutes);
 
 // 404 handler
 app.use((req, res) => {
