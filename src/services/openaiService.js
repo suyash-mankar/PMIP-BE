@@ -7,8 +7,8 @@ const openai = require('../config/openai');
 const SCORING_PROMPT_TEMPLATE = (question, answer) => `
 I'm your interviewer today - a Senior PM at a top tech company (Google, Meta, Amazon, Stripe). I've conducted 200+ PM interviews and I'm here to give you honest, actionable feedback on your answer.
 
-**SCORING CALIBRATION:**
-Most candidates in practice sessions score 6-7/10. I'll give 8+ only for answers that would genuinely impress in a real interview. Scores of 4-5 indicate significant gaps that need work. This is educational feedback, not a harsh FAANG bar.
+**SCORING GUIDANCE:**
+Evaluate each answer on its own merit using the full 0-10 scale. Strong answers with clear structure, data-driven thinking, and user focus should score 8-10. Adequate answers with some gaps score 5-7. Weak answers with significant issues score 0-4. Be honest and fair - reward quality where you see it.
 
 ---
 
@@ -24,11 +24,8 @@ YOUR ANSWER EVALUATION:
 
 Let me walk through your answer and give you specific feedback on what worked and what didn't.
 
-**START YOUR FEEDBACK WITH THE OVERALL SCORE PROMINENTLY:**
-# Overall Score: X/10
-
 **FORMAT YOUR FEEDBACK WITH MARKDOWN:**
-- Use ## for main section headings (DETAILED ANALYSIS, YOUR STRENGTHS, CRITICAL GAPS TO ADDRESS, BOTTOM LINE)
+- Use ## for main section headings (ANSWER EVALUATION, YOUR STRENGTHS, CRITICAL GAPS TO ADDRESS, BOTTOM LINE)
 - Use ### for subsection headings within sections (Step 1, Step 2, etc.)
 - Use **bold** for key terms, dimension names, issues, and important points
 - Use *italics* for emphasis and examples
@@ -37,7 +34,7 @@ Let me walk through your answer and give you specific feedback on what worked an
 - Use proper paragraph breaks for readability
 
 **EXAMPLE FORMATTING:**
-## DETAILED ANALYSIS
+## ANSWER EVALUATION
 
 ### Step 1: Problem Clarification
 **What you did:** You mentioned "users want faster checkout" but didn't clarify *which* users or *what specific friction* they face.
@@ -50,7 +47,7 @@ Let me walk through your answer and give you specific feedback on what worked an
 
 PROVIDE FEEDBACK WITH THIS STRUCTURE:
 
-## DETAILED ANALYSIS
+## ANSWER EVALUATION
 
 I'm going to walk through your answer step-by-step and show you what you did well and what you missed:
 
@@ -117,17 +114,20 @@ Here's what would hurt you in a real interview:
 
 ---
 
+**CRITICAL: YOU MUST PROVIDE dimension_scores FOR EVERY ANSWER**
+The dimension_scores object is MANDATORY. Score each dimension independently based on the rubric.
+
 OUTPUT FORMAT (JSON):
 {
   "overall_score": 0-10,
   "summary_feedback": "Brief 2-3 sentence summary of your performance and main areas to focus on. Keep it concise and actionable.",
-  "detailed_feedback": "# Overall Score: X/10\n\n## DETAILED ANALYSIS\n\nI'm going to walk through your answer step-by-step and show you what you did well and what you missed:\n\n### Step 1: [aspect]\n**What you did:** [specific quote or note]\n\n**What was missing:** [specific gap]\n\n**Impact:** [why it matters]\n\n### Step 2: [aspect]\n**What you did:** [specific]\n\n**What was missing:** [specific]\n\n**Impact:** [why it matters]\n\n[Continue for 5-8 steps with proper markdown]\n\n---\n\n## YOUR STRENGTHS\n\nI noticed these strong points in your answer:\n\n- **[Strength 1]:** [Concrete example]\n- **[Strength 2]:** [Another example]\n\n---\n\n## CRITICAL GAPS TO ADDRESS\n\nHere's what would hurt you in a real interview:\n\n- **[Gap 1]:** [Why it matters] → [What to do instead]\n- **[Gap 2]:** [Why it matters] → [What to do instead]\n\n---\n\n## BOTTOM LINE\n\n[One sentence truth]",
+  "detailed_feedback": "## ANSWER EVALUATION\n\nI'm going to walk through your answer step-by-step and show you what you did well and what you missed:\n\n### Step 1: [aspect]\n**What you did:** [specific quote or note]\n\n**What was missing:** [specific gap]\n\n**Impact:** [why it matters]\n\n### Step 2: [aspect]\n**What you did:** [specific]\n\n**What was missing:** [specific]\n\n**Impact:** [why it matters]\n\n[Continue for 5-8 steps with proper markdown]\n\n---\n\n## YOUR STRENGTHS\n\nI noticed these strong points in your answer:\n\n- **[Strength 1]:** [Concrete example]\n- **[Strength 2]:** [Another example]\n\n---\n\n## CRITICAL GAPS TO ADDRESS\n\nHere's what would hurt you in a real interview:\n\n- **[Gap 1]:** [Why it matters] → [What to do instead]\n- **[Gap 2]:** [Why it matters] → [What to do instead]\n\n---\n\n## BOTTOM LINE\n\n[One sentence truth]",
   "dimension_scores": {
-    "structure": 0-10,
-    "metrics": 0-10,
-    "prioritization": 0-10,
-    "user_empathy": 0-10,
-    "communication": 0-10
+    "structure": 0-10 [REQUIRED - Rate problem framing, organization, and logical flow],
+    "metrics": 0-10 [REQUIRED - Rate data-driven thinking and success metrics],
+    "prioritization": 0-10 [REQUIRED - Rate decision-making and trade-off analysis],
+    "user_empathy": 0-10 [REQUIRED - Rate understanding of user needs and pain points],
+    "communication": 0-10 [REQUIRED - Rate clarity, coherence, and presentation]
   },
   "strengths": [
     "Specific strength with concrete example from answer",
@@ -143,6 +143,42 @@ OUTPUT FORMAT (JSON):
   "brutal_truth": "One sentence summary of performance and focus area"
 }
 
+**SCORING RUBRIC FOR EACH DIMENSION:**
+- **structure** (0-10): How well did they frame the problem and organize their answer?
+  - 9-10: Crystal clear framework, logical flow, addressed all key aspects
+  - 7-8: Good structure with minor gaps
+  - 5-6: Basic structure but missing organization or key sections
+  - 3-4: Weak structure, hard to follow
+  - 0-2: No clear structure or framework
+
+- **metrics** (0-10): How data-driven is their thinking?
+  - 9-10: Specific metrics defined, quantified targets, measurement approach clear
+  - 7-8: Good metrics but missing quantification or measurement details
+  - 5-6: Mentioned metrics but vague or generic
+  - 3-4: Weak metrics thinking
+  - 0-2: No metrics or data-driven thinking
+
+- **prioritization** (0-10): How well did they prioritize and make trade-offs?
+  - 9-10: Clear prioritization framework, justified trade-offs, considered constraints
+  - 7-8: Good prioritization with minor gaps
+  - 5-6: Basic prioritization but weak justification
+  - 3-4: Poor prioritization logic
+  - 0-2: No prioritization or all options treated equally
+
+- **user_empathy** (0-10): How well did they understand users?
+  - 9-10: Deep user insights, specific pain points, persona definition, empathetic approach
+  - 7-8: Good user understanding with minor gaps
+  - 5-6: Basic user awareness but generic
+  - 3-4: Weak user understanding
+  - 0-2: No user consideration or highly company-centric
+
+- **communication** (0-10): How clear and compelling was their delivery?
+  - 9-10: Exceptionally clear, concise, persuasive, easy to follow
+  - 7-8: Good communication with minor areas for improvement
+  - 5-6: Understandable but could be clearer
+  - 3-4: Hard to follow or verbose
+  - 0-2: Confusing or incoherent
+
 ---
 
 TONE & STYLE:
@@ -152,7 +188,7 @@ TONE & STYLE:
 - Be encouraging but honest about gaps
 - **CRITICAL: Use markdown in feedback_text** (## for sections, ### for steps, **bold**, *italics*, bullets)
 - Use → arrows for cause-effect in gaps section
-- Educational tone: most candidates score 6-7/10, not harsh 4-6/10
+- Be fair and balanced: use the full scoring range (0-10) based on answer quality
 
 STRICT RULES:
 - Always output pure JSON only
@@ -162,7 +198,7 @@ STRICT RULES:
 - Include 5-8 analysis steps depending on answer depth
 - Include 2-4 strengths and 3-6 gaps
 - Speak directly: "You did..." not "The candidate did..."
-- Educational standard: average 6-7/10, give 8+ only for genuinely impressive answers
+- Use the full 0-10 scale fairly: reward strong answers (8-10), identify adequate ones (5-7), flag weak ones (0-4)
 - **Format each step with proper paragraph breaks between What you did / What was missing / Impact**
 `;
 
@@ -181,7 +217,7 @@ async function callOpenAIForScoring(question, answer, customPrompt = null) {
       {
         role: 'system',
         content:
-          'You are a senior PM interviewer at a top-tier tech company. You are professional, sharp, analytical, and critical. Always respond with valid JSON only. Be brutally honest in your feedback.',
+          'You are a senior PM interviewer at a top-tier tech company. You are professional, sharp, analytical, and critical. Always respond with valid JSON only. Be brutally honest in your feedback. CRITICAL: You MUST provide dimension_scores for structure, metrics, prioritization, user_empathy, and communication in EVERY response. Score each dimension independently - do NOT give all dimensions the same score.',
       },
       {
         role: 'user',
@@ -211,14 +247,29 @@ async function callOpenAIForScoring(question, answer, customPrompt = null) {
 async function callOpenAIForSummarisedScoring(question, answer, customPrompt = null) {
   const basePrompt = customPrompt || SCORING_PROMPT_TEMPLATE(question, answer);
 
-  // Add conciseness instructions to the prompt
+  // Add focused instructions to the prompt for summarised feedback
   const summarisedPrompt = basePrompt.replace(
     'OUTPUT FORMAT (JSON):',
-    `IMPORTANT: Keep your feedback CONCISE. Each section should be 2-3 sentences maximum.
-- DETAILED ANALYSIS: 2-3 key points only (not 5-8 steps, just the most critical ones)
-- STRENGTHS: Top 2 strengths only
-- CRITICAL GAPS: Top 2-3 gaps only
-- BOTTOM LINE: 1 sentence
+    `IMPORTANT: Provide FOCUSED but SUBSTANTIAL feedback. This is a SUMMARY version - concise but actionable.
+
+**KEY EVALUATION POINTS:**
+- Cover 3-4 main evaluation points (focus on the most critical aspects)
+- Each point should be a full paragraph (3-5 sentences) with specific examples from their answer
+- Be concrete: quote their answer, explain what's missing, show impact
+
+**YOUR STRENGTHS:**
+- Highlight 2-3 genuine strengths with specific examples
+- Each strength should be 2-3 sentences explaining WHY it's good
+
+**CRITICAL GAPS TO ADDRESS:**
+- Identify 3-4 critical gaps that would hurt them in a real interview
+- For each gap: explain the issue, why it matters, and what to do instead
+- Each gap should be 2-3 sentences with actionable guidance
+
+**BOTTOM LINE:**
+- 2-3 sentences summarizing overall performance and main focus area
+
+Keep it substantive and helpful - this is their main feedback!
 
 OUTPUT FORMAT (JSON):`
   );
@@ -229,7 +280,7 @@ OUTPUT FORMAT (JSON):`
       {
         role: 'system',
         content:
-          'You are a senior PM interviewer at a top-tier tech company. You are professional, sharp, analytical, and critical. Always respond with valid JSON only. Be brutally honest but CONCISE in your feedback.',
+          'You are a senior PM interviewer at a top-tier tech company. You are professional, sharp, analytical, and critical. Always respond with valid JSON only. Provide HELPFUL, ACTIONABLE feedback that helps candidates improve - be specific with examples from their answer. CRITICAL: You MUST provide dimension_scores for structure, metrics, prioritization, user_empathy, and communication in EVERY response. Score each dimension independently - do NOT give all dimensions the same score.',
       },
       {
         role: 'user',
@@ -237,7 +288,7 @@ OUTPUT FORMAT (JSON):`
       },
     ],
     temperature: 0.7,
-    max_tokens: 2000, // Limit tokens for faster response
+    max_tokens: 3500, // Allow more tokens for quality feedback
     response_format: { type: 'json_object' }, // Enforce JSON mode
   });
 

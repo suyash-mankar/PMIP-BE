@@ -81,6 +81,11 @@ async function scoreSession(session) {
           dims.execution?.score ||
           dims.calculation_logic?.score ||
           0;
+
+        console.log('✅ Extracted dimension scores:', extractedScores);
+      } else {
+        console.warn('⚠️  AI response missing dimension_scores object - will use fallback scoring');
+        console.warn('⚠️  Response keys:', Object.keys(scoreData));
       }
 
       // Calculate overall score using weighted average from individual parameters
@@ -93,6 +98,15 @@ async function scoreSession(session) {
 
         // If we have an overall_score but no dimension scores, distribute it equally for display
         if (totalScore > 0) {
+          console.warn(
+            `⚠️  WARNING: Distributing overall_score (${totalScore}) equally to all parameters!`
+          );
+          console.warn(
+            '⚠️  This means all parameter scores will be the same (all ' + totalScore + '/10)'
+          );
+          console.warn(
+            '⚠️  The AI should provide individual dimension_scores for accurate scoring.'
+          );
           extractedScores = {
             structure: totalScore,
             metrics: totalScore,
@@ -100,9 +114,6 @@ async function scoreSession(session) {
             userEmpathy: totalScore,
             communication: totalScore,
           };
-          console.log(
-            `⚠️  Using overall_score fallback (${totalScore}) - distributing equally to all parameters`
-          );
         }
       }
 
@@ -512,6 +523,11 @@ async function scoreSessionSummarised(session) {
           dims.execution?.score ||
           dims.calculation_logic?.score ||
           0;
+
+        console.log('✅ Extracted dimension scores:', extractedScores);
+      } else {
+        console.warn('⚠️  AI response missing dimension_scores object - will use fallback scoring');
+        console.warn('⚠️  Response keys:', Object.keys(scoreData));
       }
 
       // Calculate overall score using weighted average from individual parameters
@@ -524,6 +540,15 @@ async function scoreSessionSummarised(session) {
 
         // If we have an overall_score but no dimension scores, distribute it equally for display
         if (totalScore > 0) {
+          console.warn(
+            `⚠️  WARNING: Distributing overall_score (${totalScore}) equally to all parameters!`
+          );
+          console.warn(
+            '⚠️  This means all parameter scores will be the same (all ' + totalScore + '/10)'
+          );
+          console.warn(
+            '⚠️  The AI should provide individual dimension_scores for accurate scoring.'
+          );
           extractedScores = {
             structure: totalScore,
             metrics: totalScore,
@@ -531,9 +556,6 @@ async function scoreSessionSummarised(session) {
             userEmpathy: totalScore,
             communication: totalScore,
           };
-          console.log(
-            `⚠️  Using overall_score fallback (${totalScore}) - distributing equally to all parameters`
-          );
         }
       }
 

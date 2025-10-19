@@ -76,8 +76,8 @@ I'll evaluate your answer across ${
 
 ${dimensionList}
 
-**Scoring Calibration:**
-Most candidates in practice sessions score 6-7/10. I'll give 8+ only for answers that would genuinely impress in a real interview. Scores of 4-5 indicate significant gaps that need work. Be honest with yourself about where you stand.
+**Scoring Guidance:**
+Evaluate each answer on its own merit using the full 0-10 scale. Strong answers with clear structure, data-driven thinking, and user focus should score 8-10. Adequate answers with some gaps score 5-7. Weak answers with significant issues score 0-4. Be honest and fair - reward quality where you see it.
 
 ---
 
@@ -214,7 +214,7 @@ TONE GUIDELINES:
 - Quote their exact words when analyzing
 - Be encouraging but honest about gaps
 - Provide actionable advice, not generic platitudes
-- Educational tone: average score 6-7/10, not harsh FAANG standard
+- Be fair and balanced: use the full scoring range (0-10) based on answer quality
 - **CRITICAL: Use markdown formatting in feedback_text** (## headings, ### subsections, **bold**, *italics*, bullets)
 
 STRICT RULES:
