@@ -31,19 +31,15 @@ model User {
 model Question {
   id          Int       @id @default(autoincrement())
   text        String    @db.Text
-  category    String    // Core: product_design, product_strategy, metrics, product_improvement, root_cause_analysis, guesstimates
-                     // Additional: behavioral, technical, system_design, data_analysis, project_management, customer_interaction, app_critique, machine_learning, etc.
-  level       String    // junior, mid, senior
-  difficulty  Int       @default(5) // 1-10
-  tags        String?   @db.Text // JSON array as string
-  source      String    @default("curated") // curated, exponent, user_generated
-  company     String?   // Company where question was asked
+  category    String    // Categories from NextLeap: Guesstimates, Product Design, Metrics, Product Strategy, Root Cause Analysis, etc.
+  tags        String?   @db.Text // JSON array as string - additional metadata
+  source      String    @default("nextleap") // nextleap, curated, user_generated
+  company     String?   @db.Text // JSON array of companies where question was asked
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   sessions    Session[]
 
-  @@index([level])
   @@index([category])
   @@index([source])
 }

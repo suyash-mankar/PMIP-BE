@@ -4,11 +4,10 @@ const { callOpenAIForClarification, generateModelAnswer } = require('../services
 
 const startInterview = async (req, res, next) => {
   try {
-    const { level, category } = req.body;
+    const { category } = req.body;
 
     // Build query conditions
     const whereClause = {};
-    if (level) whereClause.level = level;
     if (category) whereClause.category = category;
 
     // Get random question for the specified criteria
@@ -18,8 +17,8 @@ const startInterview = async (req, res, next) => {
 
     if (questions.length === 0) {
       const errorMessage = category
-        ? `No questions found for level: ${level || 'any'} and category: ${category}`
-        : `No questions found for level: ${level || 'any'}`;
+        ? `No questions found for category: ${category}`
+        : `No questions found`;
       return res.status(404).json({ error: errorMessage });
     }
 
@@ -33,9 +32,8 @@ const startInterview = async (req, res, next) => {
         eventType: 'question_fetched',
         metadata: JSON.stringify({
           questionId: question.id,
-          level: question.level,
           category: question.category,
-          difficulty: question.difficulty,
+          source: question.source,
         }),
       },
     });
@@ -44,8 +42,8 @@ const startInterview = async (req, res, next) => {
       id: question.id,
       text: question.text,
       category: question.category,
-      level: question.level,
-      difficulty: question.difficulty,
+      company: question.company ? JSON.parse(question.company) : [],
+      source: question.source,
       tags: question.tags ? JSON.parse(question.tags) : [],
     });
   } catch (error) {
