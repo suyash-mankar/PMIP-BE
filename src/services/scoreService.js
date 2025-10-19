@@ -10,11 +10,11 @@ const { calculateWeightedScore } = require('../utils/scoringUtils');
 const MAX_RETRIES = 2;
 
 /**
- * Score a session using OpenAI with retry logic
- * @param {Object} session - Session object with question included
+ * Score an answer using OpenAI with retry logic
+ * @param {Object} answer - Answer object with question included
  * @returns {Promise<Object>} Score object
  */
-async function scoreSession(session) {
+async function scoreSession(answer) {
   let attempt = 0;
   let lastError = null;
 
@@ -22,15 +22,15 @@ async function scoreSession(session) {
     try {
       // Get category-specific scoring prompt
       const scoringPrompt = getCategoryScoringPrompt(
-        session.question.text,
-        session.answerText,
-        session.question.category
+        answer.question.text,
+        answer.answerText,
+        answer.question.category
       );
 
       // Call OpenAI with category-specific prompt
       const { content, tokensUsed } = await callOpenAIForScoring(
-        session.question.text,
-        session.answerText,
+        answer.question.text,
+        answer.answerText,
         scoringPrompt
       );
 
@@ -302,14 +302,14 @@ async function scoreSession(session) {
 
       // Check if there's an existing summary score to update
       const existingScore = await prisma.score.findUnique({
-        where: { sessionId: session.id },
+        where: { answerId: answer.id },
       });
 
       let score;
       if (existingScore && existingScore.status === 'completed_summary') {
         // Update existing summary score with detailed feedback
         score = await prisma.score.update({
-          where: { sessionId: session.id },
+          where: { answerId: answer.id },
           data: {
             structure: extractedScores.structure,
             metrics: extractedScores.metrics,
@@ -329,9 +329,9 @@ async function scoreSession(session) {
       } else {
         // Create new score (no existing summary)
         score = await prisma.score.upsert({
-          where: { sessionId: session.id },
+          where: { answerId: answer.id },
           create: {
-            sessionId: session.id,
+            answerId: answer.id,
             structure: extractedScores.structure,
             metrics: extractedScores.metrics,
             prioritization: extractedScores.prioritization,
@@ -363,17 +363,17 @@ async function scoreSession(session) {
         });
       }
 
-      // Update session status
-      await prisma.session.update({
-        where: { id: session.id },
+      // Update answer status
+      await prisma.answer.update({
+        where: { id: answer.id },
         data: { status: 'scored' },
       });
 
       // Log event
       await prisma.event.create({
         data: {
-          userId: session.userId,
-          sessionId: session.id,
+          userId: answer.userId,
+          answerId: answer.id,
           eventType: 'openai_call',
           metadata: JSON.stringify({
             attempt: attempt + 1,
@@ -393,8 +393,8 @@ async function scoreSession(session) {
       // Log failed attempt
       await prisma.event.create({
         data: {
-          userId: session.userId,
-          sessionId: session.id,
+          userId: answer.userId,
+          answerId: answer.id,
           eventType: 'error',
           metadata: JSON.stringify({
             attempt,
@@ -411,19 +411,19 @@ async function scoreSession(session) {
     }
   }
 
-  // All retries failed - flag session for review
-  console.error(`All scoring attempts failed for session ${session.id}`);
+  // All retries failed - flag answer for review
+  console.error(`All scoring attempts failed for answer ${answer.id}`);
 
   const score = await prisma.score.upsert({
-    where: { sessionId: session.id },
+    where: { answerId: answer.id },
     create: {
-      sessionId: session.id,
+      answerId: answer.id,
       structure: 0,
       metrics: 0,
       prioritization: 0,
       userEmpathy: 0,
       communication: 0,
-      feedback: 'Automated scoring failed. This session has been flagged for manual review.',
+      feedback: 'Automated scoring failed. This answer has been flagged for manual review.',
       sampleAnswer: '',
       totalScore: 0,
       tokensUsed: 0,
@@ -435,7 +435,7 @@ async function scoreSession(session) {
       prioritization: 0,
       userEmpathy: 0,
       communication: 0,
-      feedback: 'Automated scoring failed. This session has been flagged for manual review.',
+      feedback: 'Automated scoring failed. This answer has been flagged for manual review.',
       sampleAnswer: '',
       totalScore: 0,
       tokensUsed: 0,
@@ -443,8 +443,8 @@ async function scoreSession(session) {
     },
   });
 
-  await prisma.session.update({
-    where: { id: session.id },
+  await prisma.answer.update({
+    where: { id: answer.id },
     data: { status: 'needs_review' },
   });
 
@@ -452,11 +452,11 @@ async function scoreSession(session) {
 }
 
 /**
- * Score a session using OpenAI with summarised feedback (faster)
- * @param {Object} session - Session object with question included
+ * Score an answer using OpenAI with summarised feedback (faster)
+ * @param {Object} answer - Answer object with question included
  * @returns {Promise<Object>} Score object with summarised feedback
  */
-async function scoreSessionSummarised(session) {
+async function scoreSessionSummarised(answer) {
   let attempt = 0;
   let lastError = null;
 
@@ -464,15 +464,15 @@ async function scoreSessionSummarised(session) {
     try {
       // Get category-specific scoring prompt
       const scoringPrompt = getCategoryScoringPrompt(
-        session.question.text,
-        session.answerText,
-        session.question.category
+        answer.question.text,
+        answer.answerText,
+        answer.question.category
       );
 
       // Call OpenAI with category-specific prompt using summarised scoring
       const { content, tokensUsed } = await callOpenAIForSummarisedScoring(
-        session.question.text,
-        session.answerText,
+        answer.question.text,
+        answer.answerText,
         scoringPrompt
       );
 
@@ -708,9 +708,9 @@ async function scoreSessionSummarised(session) {
 
       // Save to database (marking as summarised score)
       const score = await prisma.score.upsert({
-        where: { sessionId: session.id },
+        where: { answerId: answer.id },
         create: {
-          sessionId: session.id,
+          answerId: answer.id,
           structure: extractedScores.structure,
           metrics: extractedScores.metrics,
           prioritization: extractedScores.prioritization,
@@ -736,17 +736,17 @@ async function scoreSessionSummarised(session) {
         },
       });
 
-      // Update session status
-      await prisma.session.update({
-        where: { id: session.id },
+      // Update answer status
+      await prisma.answer.update({
+        where: { id: answer.id },
         data: { status: 'scored' },
       });
 
       // Log event
       await prisma.event.create({
         data: {
-          userId: session.userId,
-          sessionId: session.id,
+          userId: answer.userId,
+          answerId: answer.id,
           eventType: 'answer_scored_summarised',
           metadata: JSON.stringify({
             totalScore,
@@ -769,15 +769,15 @@ async function scoreSessionSummarised(session) {
 
   // All retries failed - create placeholder score
   const score = await prisma.score.upsert({
-    where: { sessionId: session.id },
+    where: { answerId: answer.id },
     create: {
-      sessionId: session.id,
+      answerId: answer.id,
       structure: 0,
       metrics: 0,
       prioritization: 0,
       userEmpathy: 0,
       communication: 0,
-      feedback: 'Automated scoring failed. This session has been flagged for manual review.',
+      feedback: 'Automated scoring failed. This answer has been flagged for manual review.',
       sampleAnswer: '',
       totalScore: 0,
       tokensUsed: 0,
@@ -789,7 +789,7 @@ async function scoreSessionSummarised(session) {
       prioritization: 0,
       userEmpathy: 0,
       communication: 0,
-      feedback: 'Automated scoring failed. This session has been flagged for manual review.',
+      feedback: 'Automated scoring failed. This answer has been flagged for manual review.',
       sampleAnswer: '',
       totalScore: 0,
       tokensUsed: 0,
@@ -797,8 +797,8 @@ async function scoreSessionSummarised(session) {
     },
   });
 
-  await prisma.session.update({
-    where: { id: session.id },
+  await prisma.answer.update({
+    where: { id: answer.id },
     data: { status: 'needs_review' },
   });
 

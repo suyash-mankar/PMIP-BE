@@ -15,14 +15,23 @@ const startInterviewSchema = Joi.object({
 });
 
 const submitAnswerSchema = Joi.object({
-  sessionId: Joi.number().integer().positive().optional().allow(null),
+  answerId: Joi.number().integer().positive().optional().allow(null),
+  practiceSessionId: Joi.number().integer().positive().optional().allow(null),
   questionId: Joi.number().integer().positive().required(),
   answerText: Joi.string().min(10).required(),
   timeTaken: Joi.number().integer().min(0).optional().allow(null),
+}).custom((value, helpers) => {
+  // If answerId is not provided, practiceSessionId is required
+  if (!value.answerId && !value.practiceSessionId) {
+    return helpers.error('any.custom', {
+      message: 'practiceSessionId is required when creating a new answer',
+    });
+  }
+  return value;
 });
 
 const scoreSchema = Joi.object({
-  sessionId: Joi.number().integer().positive().required(),
+  answerId: Joi.number().integer().positive().required(),
 });
 
 const createCheckoutSchema = Joi.object({

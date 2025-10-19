@@ -97,18 +97,23 @@ const startInterview = async (req, res, next) => {
 
 const submitAnswer = async (req, res, next) => {
   try {
-    const { questionId, answerText, sessionId, timeTaken } = req.body;
+    const { questionId, answerText, answerId, practiceSessionId, timeTaken } = req.body;
 
-    // If sessionId provided, update existing session
-    if (sessionId) {
-      const session = await prisma.session.update({
-        where: { id: sessionId },
+    // If answerId provided, update existing answer
+    if (answerId) {
+      const answer = await prisma.answer.update({
+        where: { id: answerId },
         data: {
           answerText,
           timeTaken,
         },
       });
-      return res.json({ sessionId: session.id, message: 'Answer updated' });
+      return res.json({ answerId: answer.id, message: 'Answer updated' });
+    }
+
+    // practiceSessionId is required for new answers
+    if (!practiceSessionId) {
+      return res.status(400).json({ error: 'practiceSessionId is required' });
     }
 
     // Verify question exists
@@ -120,9 +125,19 @@ const submitAnswer = async (req, res, next) => {
       return res.status(404).json({ error: 'Question not found' });
     }
 
-    // Create session
-    const session = await prisma.session.create({
+    // Verify practice session exists and belongs to user
+    const practiceSession = await prisma.practiceSession.findUnique({
+      where: { id: practiceSessionId },
+    });
+
+    if (!practiceSession || practiceSession.userId !== req.user.id) {
+      return res.status(404).json({ error: 'Practice session not found' });
+    }
+
+    // Create answer
+    const answer = await prisma.answer.create({
       data: {
+        practiceSessionId,
         userId: req.user.id,
         questionId,
         answerText,
@@ -135,14 +150,14 @@ const submitAnswer = async (req, res, next) => {
     await prisma.event.create({
       data: {
         userId: req.user.id,
-        sessionId: session.id,
+        answerId: answer.id,
         eventType: 'answer_submitted',
-        metadata: JSON.stringify({ questionId, timeTaken }),
+        metadata: JSON.stringify({ questionId, practiceSessionId, timeTaken }),
       },
     });
 
     res.status(201).json({
-      sessionId: session.id,
+      answerId: answer.id,
       message: 'Answer submitted successfully',
     });
   } catch (error) {
@@ -152,37 +167,37 @@ const submitAnswer = async (req, res, next) => {
 
 const score = async (req, res, next) => {
   try {
-    const { sessionId } = req.body;
+    const { answerId } = req.body;
 
-    // Fetch session with question
-    const session = await prisma.session.findUnique({
-      where: { id: sessionId },
+    // Fetch answer with question
+    const answer = await prisma.answer.findUnique({
+      where: { id: answerId },
       include: { question: true },
     });
 
-    if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+    if (!answer) {
+      return res.status(404).json({ error: 'Answer not found' });
     }
 
     // Verify ownership
-    if (session.userId !== req.user.id) {
+    if (answer.userId !== req.user.id) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
     // Check if already scored
     const existingScore = await prisma.score.findUnique({
-      where: { sessionId },
+      where: { answerId },
     });
 
     // If existing score is a summary, update it with detailed feedback
     if (existingScore && existingScore.status === 'completed_summary') {
       console.log('Updating summary score with detailed feedback...');
 
-      // Score the session using OpenAI for detailed feedback
-      const scoreResult = await scoreSession(session);
+      // Score the answer using OpenAI for detailed feedback
+      const scoreResult = await scoreSession(answer);
 
       return res.json({
-        message: 'Session scored successfully with detailed feedback',
+        message: 'Answer scored successfully with detailed feedback',
         score: scoreResult,
       });
     }
@@ -190,16 +205,16 @@ const score = async (req, res, next) => {
     // If already scored with detailed feedback, return it
     if (existingScore) {
       return res.json({
-        message: 'Session already scored',
+        message: 'Answer already scored',
         score: existingScore,
       });
     }
 
-    // Score the session using OpenAI
-    const scoreResult = await scoreSession(session);
+    // Score the answer using OpenAI
+    const scoreResult = await scoreSession(answer);
 
     res.json({
-      message: 'Session scored successfully',
+      message: 'Answer scored successfully',
       score: scoreResult,
     });
   } catch (error) {
@@ -209,41 +224,41 @@ const score = async (req, res, next) => {
 
 const scoreSummarised = async (req, res, next) => {
   try {
-    const { sessionId } = req.body;
+    const { answerId } = req.body;
 
-    // Fetch session with question
-    const session = await prisma.session.findUnique({
-      where: { id: sessionId },
+    // Fetch answer with question
+    const answer = await prisma.answer.findUnique({
+      where: { id: answerId },
       include: { question: true },
     });
 
-    if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+    if (!answer) {
+      return res.status(404).json({ error: 'Answer not found' });
     }
 
     // Verify ownership
-    if (session.userId !== req.user.id) {
+    if (answer.userId !== req.user.id) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
-    // Check if already scored (look for any score for this session)
+    // Check if already scored (look for any score for this answer)
     const existingScore = await prisma.score.findUnique({
-      where: { sessionId },
+      where: { answerId },
     });
 
     if (existingScore) {
       return res.json({
-        message: 'Session already scored',
+        message: 'Answer already scored',
         score: existingScore,
         isSummary: existingScore.status === 'completed_summary',
       });
     }
 
-    // Score the session using OpenAI with summarised feedback
-    const scoreResult = await scoreSessionSummarised(session);
+    // Score the answer using OpenAI with summarised feedback
+    const scoreResult = await scoreSessionSummarised(answer);
 
     res.json({
-      message: 'Session scored successfully',
+      message: 'Answer scored successfully',
       score: scoreResult,
       isSummary: true,
     });
@@ -254,18 +269,21 @@ const scoreSummarised = async (req, res, next) => {
 
 const getSessions = async (req, res, next) => {
   try {
-    const sessions = await prisma.session.findMany({
+    const answers = await prisma.answer.findMany({
       where: { userId: req.user.id },
       include: {
         question: {
-          select: { text: true, category: true, level: true },
+          select: { text: true, category: true },
         },
         scores: true,
+        practiceSession: {
+          select: { id: true, startedAt: true, endedAt: true, status: true },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json({ sessions });
+    res.json({ answers });
   } catch (error) {
     next(error);
   }
@@ -273,26 +291,27 @@ const getSessions = async (req, res, next) => {
 
 const getSessionById = async (req, res, next) => {
   try {
-    const sessionId = parseInt(req.params.id);
+    const answerId = parseInt(req.params.id);
 
-    const session = await prisma.session.findUnique({
-      where: { id: sessionId },
+    const answer = await prisma.answer.findUnique({
+      where: { id: answerId },
       include: {
         question: true,
         scores: true,
+        practiceSession: true,
       },
     });
 
-    if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+    if (!answer) {
+      return res.status(404).json({ error: 'Answer not found' });
     }
 
     // Verify ownership
-    if (session.userId !== req.user.id) {
+    if (answer.userId !== req.user.id) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
-    res.json({ session });
+    res.json({ answer });
   } catch (error) {
     next(error);
   }

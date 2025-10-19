@@ -11,19 +11,20 @@ datasource db {
 }
 
 model User {
-  id            Int             @id @default(autoincrement())
-  email         String          @unique
-  password      String?
-  googleId      String?         @unique
-  provider      String          @default("email") // email, google
-  role          String          @default("user") // user, admin
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  id               Int               @id @default(autoincrement())
+  email            String            @unique
+  password         String?
+  googleId         String?           @unique
+  provider         String            @default("email") // email, google
+  role             String            @default("user") // user, admin
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
   
-  sessions      Session[]
-  payments      Payment[]
-  events        Event[]
-  questionViews QuestionView[]
+  practiceSessions PracticeSession[]
+  answers          Answer[]
+  payments         Payment[]
+  events           Event[]
+  questionViews    QuestionView[]
 
   @@index([email])
   @@index([googleId])
@@ -39,36 +40,53 @@ model Question {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  sessions    Session[]
+  answers     Answer[]
   views       QuestionView[]
 
   @@index([category])
   @@index([source])
 }
 
-model Session {
+model PracticeSession {
   id          Int       @id @default(autoincrement())
   userId      Int
-  questionId  Int
-  answerText  String    @db.Text
-  transcript  String?   @db.Text // Future use for voice transcripts
-  timeTaken   Int?      // Time in seconds (nullable for backward compatibility)
-  status      String    @default("submitted") // submitted, scored, needs_review
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  status      String    @default("active") // active, completed
+  startedAt   DateTime  @default(now())
+  endedAt     DateTime?
   
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  question    Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  scores      Score?
-  events      Event[]
+  answers     Answer[]
+  
+  @@index([userId])
+  @@index([status])
+}
 
+model Answer {
+  id                Int              @id @default(autoincrement())
+  practiceSessionId Int
+  userId            Int
+  questionId        Int
+  answerText        String           @db.Text
+  transcript        String?          @db.Text // Future use for voice transcripts
+  timeTaken         Int?             // Time in seconds (nullable for backward compatibility)
+  status            String           @default("submitted") // submitted, scored, needs_review
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  practiceSession   PracticeSession  @relation(fields: [practiceSessionId], references: [id], onDelete: Cascade)
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question          Question         @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  scores            Score?
+  events            Event[]
+  
+  @@index([practiceSessionId])
   @@index([userId])
   @@index([status])
 }
 
 model Score {
   id              Int       @id @default(autoincrement())
-  sessionId       Int       @unique
+  answerId        Int       @unique
   structure       Int       // 0-10
   metrics         Int       // 0-10
   prioritization  Int       // 0-10
@@ -82,9 +100,9 @@ model Score {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   
-  session         Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  answer          Answer    @relation(fields: [answerId], references: [id], onDelete: Cascade)
 
-  @@index([sessionId])
+  @@index([answerId])
   @@index([status])
 }
 
@@ -111,17 +129,17 @@ model Payment {
 model Event {
   id          Int       @id @default(autoincrement())
   userId      Int?
-  sessionId   Int?
+  answerId    Int?
   eventType   String    // api_request, openai_call, error, webhook
   metadata    String?   @db.Text // JSON metadata
   tokensUsed  Int       @default(0)
   createdAt   DateTime  @default(now())
   
   user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  session     Session?  @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  answer      Answer?   @relation(fields: [answerId], references: [id], onDelete: SetNull)
 
   @@index([userId])
-  @@index([sessionId])
+  @@index([answerId])
   @@index([eventType])
   @@index([createdAt])
 }

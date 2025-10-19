@@ -6,6 +6,7 @@ const {
   getTimelineStats,
   getProgressHistory,
   getCategoryStats,
+  getUserSessions,
 } = require('../controllers/progressController');
 const { authMiddleware } = require('../middlewares/auth');
 
@@ -26,5 +27,8 @@ router.get('/history', getProgressHistory);
 
 // GET /api/progress/categories - Enhanced category statistics
 router.get('/categories', getCategoryStats);
+
+// GET /api/progress/sessions - Get practice sessions
+router.get('/sessions', getUserSessions);
 
 module.exports = router;

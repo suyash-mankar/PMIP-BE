@@ -15,7 +15,7 @@ const getDashboardStats = async (req, res, next) => {
     const userId = req.user.id;
 
     // Get all scored sessions
-    const scoredSessions = await prisma.session.findMany({
+    const scoredSessions = await prisma.answer.findMany({
       where: {
         userId,
         scores: {
@@ -89,7 +89,7 @@ const getParameterStats = async (req, res, next) => {
     const userId = req.user.id;
 
     // Get all scored sessions
-    const scoredSessions = await prisma.session.findMany({
+    const scoredSessions = await prisma.answer.findMany({
       where: {
         userId,
         scores: {
@@ -148,7 +148,7 @@ const getTimelineStats = async (req, res, next) => {
     startDate.setDate(startDate.getDate() - parseInt(days));
 
     // Get scored sessions in date range
-    const sessions = await prisma.session.findMany({
+    const sessions = await prisma.answer.findMany({
       where: {
         userId,
         scores: {
@@ -233,7 +233,7 @@ const getProgressHistory = async (req, res, next) => {
     }
 
     // Get sessions with filters
-    let sessions = await prisma.session.findMany({
+    let sessions = await prisma.answer.findMany({
       where: whereClause,
       include: {
         scores: true,
@@ -335,7 +335,7 @@ const getCategoryStats = async (req, res, next) => {
     const userId = req.user.id;
 
     // Get all scored sessions with questions
-    const scoredSessions = await prisma.session.findMany({
+    const scoredSessions = await prisma.answer.findMany({
       where: {
         userId,
         scores: {
@@ -420,10 +420,70 @@ const getCategoryStats = async (req, res, next) => {
   }
 };
 
+/**
+ * GET /api/progress/sessions
+ * Get completed practice sessions for dashboard
+ */
+const getUserSessions = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    const sessions = await prisma.practiceSession.findMany({
+      where: { userId, status: 'completed' },
+      include: {
+        answers: {
+          include: {
+            question: { select: { category: true } },
+            scores: { select: { totalScore: true } },
+          },
+        },
+      },
+      orderBy: { endedAt: 'desc' },
+      take: 20, // Limit to most recent 20 sessions
+    });
+
+    // Calculate summary for each session
+    const sessionSummaries = sessions.map(session => {
+      const answers = session.answers;
+      const categories = {};
+      let totalScore = 0;
+      let scoredCount = 0;
+
+      answers.forEach(answer => {
+        const category = answer.question.category;
+        categories[category] = (categories[category] || 0) + 1;
+
+        if (answer.scores) {
+          totalScore += answer.scores.totalScore;
+          scoredCount++;
+        }
+      });
+
+      return {
+        sessionId: session.id,
+        startedAt: session.startedAt,
+        endedAt: session.endedAt,
+        duration: session.endedAt
+          ? Math.floor((new Date(session.endedAt) - new Date(session.startedAt)) / 1000)
+          : null,
+        questionsCount: answers.length,
+        categoriesBreakdown: categories,
+        overallScore: scoredCount > 0 ? Math.round((totalScore / scoredCount) * 10) / 10 : null,
+      };
+    });
+
+    res.json({ sessions: sessionSummaries });
+  } catch (error) {
+    console.error('Get user sessions error:', error);
+    next(error);
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getParameterStats,
   getTimelineStats,
   getProgressHistory,
   getCategoryStats,
+  getUserSessions,
 };

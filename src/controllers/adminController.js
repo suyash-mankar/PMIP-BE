@@ -2,7 +2,7 @@ const prisma = require('../config/database');
 
 const getFlaggedSessions = async (req, res, next) => {
   try {
-    const flaggedSessions = await prisma.session.findMany({
+    const flaggedSessions = await prisma.answer.findMany({
       where: { status: 'needs_review' },
       include: {
         user: {
@@ -44,12 +44,12 @@ const getMetrics = async (req, res, next) => {
     });
 
     // Total sessions
-    const totalSessions = await prisma.session.count({
+    const totalSessions = await prisma.answer.count({
       where: { createdAt: { gte: startDate } },
     });
 
     // Scored sessions
-    const scoredSessions = await prisma.session.count({
+    const scoredSessions = await prisma.answer.count({
       where: {
         createdAt: { gte: startDate },
         status: 'scored',
@@ -57,7 +57,7 @@ const getMetrics = async (req, res, next) => {
     });
 
     // Flagged sessions
-    const flaggedSessions = await prisma.session.count({
+    const flaggedSessions = await prisma.answer.count({
       where: {
         createdAt: { gte: startDate },
         status: 'needs_review',
