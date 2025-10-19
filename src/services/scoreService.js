@@ -296,8 +296,13 @@ async function scoreSession(answer) {
           .map((bullet, index) => `${index + 1}. ${bullet}`)
           .join('\n');
       } else {
-        // Fallback to raw feedback
-        feedbackString = scoreData.feedback || 'No feedback provided';
+        // Fallback to raw feedback - check multiple field names
+        feedbackString =
+          scoreData.summary_feedback ||
+          scoreData.detailed_feedback ||
+          scoreData.feedback ||
+          scoreData.feedback_text ||
+          'No feedback provided';
       }
 
       // Check if there's an existing summary score to update
@@ -478,6 +483,15 @@ async function scoreSessionSummarised(answer) {
 
       // Parse and validate
       const scoreData = parseAndValidateScore(content);
+
+      // Debug: Log feedback fields
+      console.log('📝 Summarised feedback fields in scoreData:', {
+        has_summary_feedback: !!scoreData.summary_feedback,
+        has_detailed_feedback: !!scoreData.detailed_feedback,
+        has_feedback: !!scoreData.feedback,
+        has_feedback_text: !!scoreData.feedback_text,
+        summary_feedback_preview: scoreData.summary_feedback?.substring(0, 100) || 'N/A',
+      });
 
       // Extract dimension scores from the response (ALWAYS required now)
       let extractedScores = {
@@ -702,8 +716,13 @@ async function scoreSessionSummarised(answer) {
           .map((bullet, index) => `${index + 1}. ${bullet}`)
           .join('\n');
       } else {
-        // Fallback to raw feedback
-        feedbackString = scoreData.feedback || 'No feedback provided';
+        // Fallback to raw feedback - check multiple field names
+        feedbackString =
+          scoreData.summary_feedback ||
+          scoreData.detailed_feedback ||
+          scoreData.feedback ||
+          scoreData.feedback_text ||
+          'No feedback provided';
       }
 
       // Save to database (marking as summarised score)

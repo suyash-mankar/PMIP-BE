@@ -143,7 +143,10 @@ OUTPUT FORMAT (JSON):
   "brutal_truth": "One sentence summary of performance and focus area"
 }
 
-**SCORING RUBRIC FOR EACH DIMENSION:**
+**SCORING RUBRIC FOR EACH DIMENSION (EVALUATE INDEPENDENTLY!):**
+
+⚠️ CRITICAL: Score each dimension separately based on what you observe. An answer can have high structure but low metrics - this is NORMAL. Do NOT give all dimensions the same score!
+
 - **structure** (0-10): How well did they frame the problem and organize their answer?
   - 9-10: Crystal clear framework, logical flow, addressed all key aspects
   - 7-8: Good structure with minor gaps
@@ -151,33 +154,35 @@ OUTPUT FORMAT (JSON):
   - 3-4: Weak structure, hard to follow
   - 0-2: No clear structure or framework
 
-- **metrics** (0-10): How data-driven is their thinking?
+- **metrics** (0-10): How data-driven is their thinking? (Look for numbers, percentages, KPIs)
   - 9-10: Specific metrics defined, quantified targets, measurement approach clear
   - 7-8: Good metrics but missing quantification or measurement details
   - 5-6: Mentioned metrics but vague or generic
   - 3-4: Weak metrics thinking
   - 0-2: No metrics or data-driven thinking
 
-- **prioritization** (0-10): How well did they prioritize and make trade-offs?
+- **prioritization** (0-10): How well did they prioritize and make trade-offs? (Look for frameworks, criteria)
   - 9-10: Clear prioritization framework, justified trade-offs, considered constraints
   - 7-8: Good prioritization with minor gaps
   - 5-6: Basic prioritization but weak justification
   - 3-4: Poor prioritization logic
   - 0-2: No prioritization or all options treated equally
 
-- **user_empathy** (0-10): How well did they understand users?
+- **user_empathy** (0-10): How well did they understand users? (Look for user needs, pain points, personas)
   - 9-10: Deep user insights, specific pain points, persona definition, empathetic approach
   - 7-8: Good user understanding with minor gaps
   - 5-6: Basic user awareness but generic
   - 3-4: Weak user understanding
   - 0-2: No user consideration or highly company-centric
 
-- **communication** (0-10): How clear and compelling was their delivery?
+- **communication** (0-10): How clear and compelling was their delivery? (Clarity, conciseness, flow)
   - 9-10: Exceptionally clear, concise, persuasive, easy to follow
   - 7-8: Good communication with minor areas for improvement
   - 5-6: Understandable but could be clearer
   - 3-4: Hard to follow or verbose
   - 0-2: Confusing or incoherent
+
+EXAMPLE: An answer might be structured well (structure: 8) but lack metrics (metrics: 3) and prioritization (prioritization: 4) while being clear (communication: 7) and user-focused (user_empathy: 8). This is NORMAL - score based on actual observations!
 
 ---
 
@@ -217,7 +222,7 @@ async function callOpenAIForScoring(question, answer, customPrompt = null) {
       {
         role: 'system',
         content:
-          'You are a senior PM interviewer at a top-tier tech company. You are professional, sharp, analytical, and critical. Always respond with valid JSON only. Be brutally honest in your feedback. CRITICAL: You MUST provide dimension_scores for structure, metrics, prioritization, user_empathy, and communication in EVERY response. Score each dimension independently - do NOT give all dimensions the same score.',
+          'You are a senior PM interviewer at a top-tier tech company. You are professional, sharp, analytical, and critical. Always respond with valid JSON only. Be brutally honest in your feedback. CRITICAL SCORING REQUIREMENTS: 1) You MUST score EACH dimension INDEPENDENTLY - evaluate structure, metrics, prioritization, user_empathy, and communication separately. 2) Each dimension should have a DIFFERENT score reflecting specific observations. 3) An answer might have strong structure (8-9) but weak metrics (3-4) - score accordingly. 4) Look for specific evidence in each dimension before scoring. 5) DO NOT give all dimensions the same score - that indicates you are not evaluating independently.',
       },
       {
         role: 'user',
@@ -245,34 +250,54 @@ async function callOpenAIForScoring(question, answer, customPrompt = null) {
  * @returns {Promise<Object>} Parsed score object with summarised feedback
  */
 async function callOpenAIForSummarisedScoring(question, answer, customPrompt = null) {
-  const basePrompt = customPrompt || SCORING_PROMPT_TEMPLATE(question, answer);
+  // Create a much shorter, focused prompt for summarised scoring
+  const summarisedPrompt = `
+You are a senior PM interviewer at a top tech company. Provide SHORT, CONCISE feedback for this interview answer.
 
-  // Add focused instructions to the prompt for summarised feedback
-  const summarisedPrompt = basePrompt.replace(
-    'OUTPUT FORMAT (JSON):',
-    `IMPORTANT: Provide FOCUSED but SUBSTANTIAL feedback. This is a SUMMARY version - concise but actionable.
+QUESTION:
+${question}
 
-**KEY EVALUATION POINTS:**
-- Cover 3-4 main evaluation points (focus on the most critical aspects)
-- Each point should be a full paragraph (3-5 sentences) with specific examples from their answer
-- Be concrete: quote their answer, explain what's missing, show impact
+ANSWER:
+${answer}
 
-**YOUR STRENGTHS:**
-- Highlight 2-3 genuine strengths with specific examples
-- Each strength should be 2-3 sentences explaining WHY it's good
+---
 
-**CRITICAL GAPS TO ADDRESS:**
-- Identify 3-4 critical gaps that would hurt them in a real interview
-- For each gap: explain the issue, why it matters, and what to do instead
-- Each gap should be 2-3 sentences with actionable guidance
+PROVIDE BRIEF FEEDBACK (2-3 SENTENCES PER SECTION):
 
-**BOTTOM LINE:**
-- 2-3 sentences summarizing overall performance and main focus area
+1. **Quick Take (2-3 sentences):** Overall assessment - what worked and what didn't.
 
-Keep it substantive and helpful - this is their main feedback!
+2. **Top Strengths (2-3 bullets, one line each):** Most notable strong points.
 
-OUTPUT FORMAT (JSON):`
-  );
+3. **Critical Gaps (2-3 bullets, one line each):** Most important issues to fix.
+
+4. **Bottom Line (1-2 sentences):** Main takeaway and focus area.
+
+Keep it SHORT and ACTIONABLE. This is a quick summary - detailed feedback is provided separately.
+
+OUTPUT FORMAT (JSON):
+{
+  "overall_score": <number 0-10>,
+  "dimension_scores": {
+    "structure": <number 0-10>,
+    "metrics": <number 0-10>,
+    "prioritization": <number 0-10>,
+    "user_empathy": <number 0-10>,
+    "communication": <number 0-10>
+  },
+  "summary_feedback": "<concise markdown feedback following the structure above - keep each section to 2-3 sentences or bullets>",
+  "detailed_feedback": ""
+}
+
+CRITICAL SCORING RULES:
+1. Score EACH dimension independently based on what you observe in the answer
+2. Structure: How well organized and logical is the answer?
+3. Metrics: Are there data points, measurements, or quantified goals?
+4. Prioritization: Do they show clear decision-making and trade-offs?
+5. User Empathy: Do they consider user needs and pain points?
+6. Communication: How clear and articulate is the explanation?
+7. DO NOT give all dimensions the same score - evaluate each separately
+8. Use the full 0-10 range: 8-10 for strong, 5-7 for adequate, 0-4 for weak
+`;
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini', // Using GPT-4o-mini for faster summarised feedback
@@ -280,15 +305,15 @@ OUTPUT FORMAT (JSON):`
       {
         role: 'system',
         content:
-          'You are a senior PM interviewer at a top-tier tech company. You are professional, sharp, analytical, and critical. Always respond with valid JSON only. Provide HELPFUL, ACTIONABLE feedback that helps candidates improve - be specific with examples from their answer. CRITICAL: You MUST provide dimension_scores for structure, metrics, prioritization, user_empathy, and communication in EVERY response. Score each dimension independently - do NOT give all dimensions the same score.',
+          'You are a senior PM interviewer providing CONCISE feedback. Respond with valid JSON only. CRITICAL REQUIREMENTS: 1) You MUST score each dimension (structure, metrics, prioritization, user_empathy, communication) INDEPENDENTLY - each dimension should have a DIFFERENT score based on what you observe. 2) Structure: logical organization. 3) Metrics: data/numbers. 4) Prioritization: decision-making/trade-offs. 5) User Empathy: user focus. 6) Communication: clarity. 7) Keep feedback SHORT (2-3 sentences per section). 8) Use full 0-10 scale.',
       },
       {
         role: 'user',
         content: summarisedPrompt,
       },
     ],
-    temperature: 0.7,
-    max_tokens: 3500, // Allow more tokens for quality feedback
+    temperature: 0.8, // Slightly higher for more variation in scores
+    max_tokens: 1500, // Reduced for shorter, more concise feedback
     response_format: { type: 'json_object' }, // Enforce JSON mode
   });
 
