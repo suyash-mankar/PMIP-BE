@@ -1,86 +1,102 @@
-const prisma = require('../config/database');
+const { safeQuery, prisma } = require('../utils/dbHelper');
 const { scoreSession, scoreSessionSummarised } = require('../services/scoreService');
 const { callOpenAIForClarification, generateModelAnswer } = require('../services/openaiService');
 
 const startInterview = async (req, res, next) => {
   try {
     const { category } = req.body;
+    const userId = req.user?.id; // Use optional chaining for anonymous users
 
-    // Get all question IDs already viewed by this user
-    const viewedQuestions = await prisma.questionView.findMany({
-      where: { userId: req.user.id },
-      select: { questionId: true },
-    });
+    let viewedQuestionIds = [];
 
-    const viewedQuestionIds = viewedQuestions.map(v => v.questionId);
+    // Only track viewed questions for authenticated users
+    if (userId) {
+      const viewedQuestions = await safeQuery(
+        db =>
+          db.questionView.findMany({
+            where: { userId },
+            select: { questionId: true },
+          }),
+        [],
+        'Fetch viewed questions'
+      );
+      viewedQuestionIds = viewedQuestions.map(v => v.questionId);
+    }
 
     // Build query conditions
-    const whereClause = {
-      id: {
+    const whereClause = {};
+    if (viewedQuestionIds.length > 0) {
+      whereClause.id = {
         notIn: viewedQuestionIds, // Exclude already viewed questions
-      },
-    };
+      };
+    }
     if (category) whereClause.category = category;
 
     // Get random question for the specified criteria
-    const questions = await prisma.question.findMany({
-      where: whereClause,
-    });
+    const questions = await safeQuery(
+      db => db.question.findMany({ where: whereClause }),
+      [],
+      'Fetch questions'
+    );
 
-    // If no unviewed questions, check if there are any questions at all
+    // Fallback: If DB failed and no questions returned, use sample question
     if (questions.length === 0) {
-      const totalQuestions = await prisma.question.count({
-        where: category ? { category } : {},
-      });
-
-      if (totalQuestions === 0) {
-        const errorMessage = category
-          ? `No questions found for category: ${category}`
-          : `No questions found`;
-        return res.status(404).json({ error: errorMessage });
-      } else {
-        // All questions in this category have been viewed
-        return res.status(404).json({
-          error: 'All questions in this category have been completed',
-          allCompleted: true,
-          totalViewed: viewedQuestionIds.length,
-          categoryTotal: totalQuestions,
-        });
-      }
+      console.warn('⚠️ No questions from database, using fallback question');
+      const fallbackQuestion = {
+        id: 9999,
+        text: 'Design a product to help remote teams collaborate more effectively',
+        category: category || 'Product Design',
+        company: ['Meta', 'Google'],
+        source: 'fallback',
+        tags: [],
+      };
+      return res.json(fallbackQuestion);
     }
 
     const randomIndex = Math.floor(Math.random() * questions.length);
     const question = questions[randomIndex];
 
-    // Record that user has viewed this question
-    await prisma.questionView.upsert({
-      where: {
-        userId_questionId: {
-          userId: req.user.id,
-          questionId: question.id,
-        },
-      },
-      create: {
-        userId: req.user.id,
-        questionId: question.id,
-      },
-      update: {
-        viewedAt: new Date(),
-      },
-    });
+    // Record that user has viewed this question (only for authenticated users)
+    if (userId) {
+      await safeQuery(
+        db =>
+          db.questionView.upsert({
+            where: {
+              userId_questionId: {
+                userId,
+                questionId: question.id,
+              },
+            },
+            create: {
+              userId,
+              questionId: question.id,
+            },
+            update: {
+              viewedAt: new Date(),
+            },
+          }),
+        null,
+        'Record question view'
+      );
 
-    // Log event
-    await prisma.event.create({
-      data: {
-        userId: req.user.id,
-        eventType: 'question_fetched',
-        metadata: JSON.stringify({
-          questionId: question.id,
-          category: question.category,
-          source: question.source,
-        }),
-      },
-    });
+      // Log event (only for authenticated users)
+      await safeQuery(
+        db =>
+          db.event.create({
+            data: {
+              userId,
+              eventType: 'question_fetched',
+              metadata: JSON.stringify({
+                questionId: question.id,
+                category: question.category,
+                source: question.source,
+              }),
+            },
+          }),
+        null,
+        'Log question fetch event'
+      );
+    }
 
     res.json({
       id: question.id,
@@ -98,6 +114,7 @@ const startInterview = async (req, res, next) => {
 const submitAnswer = async (req, res, next) => {
   try {
     const { questionId, answerText, answerId, practiceSessionId, timeTaken } = req.body;
+    const userId = req.user?.id; // Use optional chaining for anonymous users
 
     // If answerId provided, update existing answer
     if (answerId) {
@@ -111,11 +128,6 @@ const submitAnswer = async (req, res, next) => {
       return res.json({ answerId: answer.id, message: 'Answer updated' });
     }
 
-    // practiceSessionId is required for new answers
-    if (!practiceSessionId) {
-      return res.status(400).json({ error: 'practiceSessionId is required' });
-    }
-
     // Verify question exists
     const question = await prisma.question.findUnique({
       where: { id: questionId },
@@ -125,36 +137,48 @@ const submitAnswer = async (req, res, next) => {
       return res.status(404).json({ error: 'Question not found' });
     }
 
-    // Verify practice session exists and belongs to user
-    const practiceSession = await prisma.practiceSession.findUnique({
-      where: { id: practiceSessionId },
-    });
+    // For authenticated users, verify practice session
+    if (userId && practiceSessionId) {
+      const practiceSession = await prisma.practiceSession.findUnique({
+        where: { id: practiceSessionId },
+      });
 
-    if (!practiceSession || practiceSession.userId !== req.user.id) {
-      return res.status(404).json({ error: 'Practice session not found' });
+      if (!practiceSession || practiceSession.userId !== userId) {
+        return res.status(404).json({ error: 'Practice session not found' });
+      }
     }
 
-    // Create answer
+    // Create answer (with or without userId for anonymous)
+    const answerData = {
+      questionId,
+      answerText,
+      timeTaken,
+      status: 'submitted',
+    };
+
+    if (userId) {
+      answerData.userId = userId;
+    }
+
+    if (practiceSessionId) {
+      answerData.practiceSessionId = practiceSessionId;
+    }
+
     const answer = await prisma.answer.create({
-      data: {
-        practiceSessionId,
-        userId: req.user.id,
-        questionId,
-        answerText,
-        timeTaken,
-        status: 'submitted',
-      },
+      data: answerData,
     });
 
-    // Log event
-    await prisma.event.create({
-      data: {
-        userId: req.user.id,
-        answerId: answer.id,
-        eventType: 'answer_submitted',
-        metadata: JSON.stringify({ questionId, practiceSessionId, timeTaken }),
-      },
-    });
+    // Log event (only for authenticated users)
+    if (userId) {
+      await prisma.event.create({
+        data: {
+          userId,
+          answerId: answer.id,
+          eventType: 'answer_submitted',
+          metadata: JSON.stringify({ questionId, practiceSessionId, timeTaken }),
+        },
+      });
+    }
 
     res.status(201).json({
       answerId: answer.id,
@@ -168,6 +192,7 @@ const submitAnswer = async (req, res, next) => {
 const score = async (req, res, next) => {
   try {
     const { answerId } = req.body;
+    const userId = req.user?.id;
 
     // Fetch answer with question
     const answer = await prisma.answer.findUnique({
@@ -179,8 +204,8 @@ const score = async (req, res, next) => {
       return res.status(404).json({ error: 'Answer not found' });
     }
 
-    // Verify ownership
-    if (answer.userId !== req.user.id) {
+    // Verify ownership (only for authenticated users)
+    if (userId && answer.userId && answer.userId !== userId) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
@@ -225,6 +250,7 @@ const score = async (req, res, next) => {
 const scoreSummarised = async (req, res, next) => {
   try {
     const { answerId } = req.body;
+    const userId = req.user?.id;
 
     // Fetch answer with question
     const answer = await prisma.answer.findUnique({
@@ -236,8 +262,8 @@ const scoreSummarised = async (req, res, next) => {
       return res.status(404).json({ error: 'Answer not found' });
     }
 
-    // Verify ownership
-    if (answer.userId !== req.user.id) {
+    // Verify ownership (only for authenticated users)
+    if (userId && answer.userId && answer.userId !== userId) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
@@ -320,6 +346,7 @@ const getSessionById = async (req, res, next) => {
 const clarify = async (req, res, next) => {
   try {
     const { questionId, userMessage, conversationHistory } = req.body;
+    const userId = req.user?.id;
 
     // Validate inputs
     if (!questionId) {
@@ -345,18 +372,20 @@ const clarify = async (req, res, next) => {
       conversationHistory || []
     );
 
-    // Log the clarification event
-    await prisma.event.create({
-      data: {
-        userId: req.user.id,
-        eventType: 'clarification_requested',
-        metadata: JSON.stringify({
-          questionId,
-          userMessage: userMessage.substring(0, 100), // Store first 100 chars
-          tokensUsed,
-        }),
-      },
-    });
+    // Log the clarification event (only for authenticated users)
+    if (userId) {
+      await prisma.event.create({
+        data: {
+          userId,
+          eventType: 'clarification_requested',
+          metadata: JSON.stringify({
+            questionId,
+            userMessage: userMessage.substring(0, 100), // Store first 100 chars
+            tokensUsed,
+          }),
+        },
+      });
+    }
 
     res.json({
       response,
@@ -408,6 +437,7 @@ const getCategories = async (req, res, next) => {
 const getModelAnswer = async (req, res, next) => {
   try {
     const { questionId } = req.body;
+    const userId = req.user?.id;
 
     // Get question text
     const question = await prisma.question.findUnique({
@@ -421,16 +451,18 @@ const getModelAnswer = async (req, res, next) => {
     // Generate model answer
     const modelAnswer = await generateModelAnswer(question.text);
 
-    // Log event
-    await prisma.event.create({
-      data: {
-        userId: req.user.id,
-        eventType: 'model_answer_viewed',
-        metadata: JSON.stringify({
-          questionId: question.id,
-        }),
-      },
-    });
+    // Log event (only for authenticated users)
+    if (userId) {
+      await prisma.event.create({
+        data: {
+          userId,
+          eventType: 'model_answer_viewed',
+          metadata: JSON.stringify({
+            questionId: question.id,
+          }),
+        },
+      });
+    }
 
     res.json({
       modelAnswer,

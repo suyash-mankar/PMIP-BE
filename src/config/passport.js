@@ -1,6 +1,6 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const prisma = require('./database');
+const { prisma } = require('./database');
 
 passport.use(
   new GoogleStrategy(
@@ -41,13 +41,21 @@ passport.use(
           return done(null, user);
         }
 
-        // Create new user with Google account
+        // Create new user with Google account and 48-hour Pro trial
+        const now = new Date();
+        const trialEndDate = new Date(now.getTime() + 48 * 60 * 60 * 1000); // 48 hours from now
+
         user = await prisma.user.create({
           data: {
             email,
             googleId,
             provider: 'google',
             password: null, // No password for Google users
+            planType: 'pro_trial',
+            trialStartDate: now,
+            subscriptionEndDate: trialEndDate,
+            monthlyQuestionCount: 0,
+            lastQuestionResetDate: now,
           },
         });
 

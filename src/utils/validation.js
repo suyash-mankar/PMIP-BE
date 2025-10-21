@@ -20,14 +20,6 @@ const submitAnswerSchema = Joi.object({
   questionId: Joi.number().integer().positive().required(),
   answerText: Joi.string().min(10).required(),
   timeTaken: Joi.number().integer().min(0).optional().allow(null),
-}).custom((value, helpers) => {
-  // If answerId is not provided, practiceSessionId is required
-  if (!value.answerId && !value.practiceSessionId) {
-    return helpers.error('any.custom', {
-      message: 'practiceSessionId is required when creating a new answer',
-    });
-  }
-  return value;
 });
 
 const scoreSchema = Joi.object({

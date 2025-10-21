@@ -11,6 +11,8 @@ const {
   getModelAnswer,
 } = require('../controllers/interviewController');
 const { authMiddleware } = require('../middlewares/auth');
+const { optionalAuthMiddleware } = require('../middlewares/optionalAuth');
+const { checkUsageLimit, trackQuestionUsage } = require('../controllers/usageController');
 const { scoringLimiter } = require('../middlewares/rateLimiter');
 const {
   validate,
@@ -21,20 +23,28 @@ const {
 
 const router = express.Router();
 
-router.post('/start-interview', authMiddleware, validate(startInterviewSchema), startInterview);
+// Usage tracking endpoints (allow anonymous)
+router.post('/check-limit', optionalAuthMiddleware, checkUsageLimit);
+router.post('/track-usage', optionalAuthMiddleware, trackQuestionUsage);
 
-router.post('/submit-answer', authMiddleware, validate(submitAnswerSchema), submitAnswer);
+// Interview endpoints (allow anonymous with optional auth)
+router.post(
+  '/start-interview',
+  optionalAuthMiddleware,
+  validate(startInterviewSchema),
+  startInterview
+);
+router.post('/submit-answer', optionalAuthMiddleware, validate(submitAnswerSchema), submitAnswer);
+router.post('/score', optionalAuthMiddleware, validate(scoreSchema), score);
+router.post('/score-summarised', optionalAuthMiddleware, validate(scoreSchema), scoreSummarised);
+router.post('/clarify', optionalAuthMiddleware, clarify);
+router.post('/model-answer', optionalAuthMiddleware, getModelAnswer);
 
-router.post('/score', authMiddleware, validate(scoreSchema), score);
+// Get categories (public)
+router.get('/categories', getCategories);
 
-router.post('/score-summarised', authMiddleware, validate(scoreSchema), scoreSummarised);
-
-router.post('/clarify', authMiddleware, clarify);
-
+// Session/history endpoints (require authentication)
 router.get('/sessions', authMiddleware, getSessions);
 router.get('/sessions/:id', authMiddleware, getSessionById);
-router.get('/categories', authMiddleware, getCategories);
-
-router.post('/model-answer', authMiddleware, getModelAnswer);
 
 module.exports = router;

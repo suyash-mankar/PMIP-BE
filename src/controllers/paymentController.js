@@ -1,5 +1,5 @@
 const razorpay = require('../config/razorpay');
-const prisma = require('../config/database');
+const { prisma } = require('../config/database');
 const crypto = require('crypto');
 
 /**

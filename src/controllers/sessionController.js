@@ -1,4 +1,4 @@
-const prisma = require('../config/database');
+const { prisma } = require('../config/database');
 
 // Helper function to calculate session summary
 function calculateSessionSummary(session) {

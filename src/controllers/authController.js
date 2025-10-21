@@ -1,6 +1,6 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const prisma = require('../config/database');
+const { prisma } = require('../config/database');
 
 const SALT_ROUNDS = 10;
 const JWT_EXPIRES_IN = '7d';
@@ -18,16 +18,27 @@ const register = async (req, res, next) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    // Create user
+    // Create user with 48-hour Pro trial
+    const now = new Date();
+    const trialEndDate = new Date(now.getTime() + 48 * 60 * 60 * 1000); // 48 hours from now
+
     const user = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
+        planType: 'pro_trial',
+        trialStartDate: now,
+        subscriptionEndDate: trialEndDate,
+        monthlyQuestionCount: 0,
+        lastQuestionResetDate: now,
       },
       select: {
         id: true,
         email: true,
         role: true,
+        planType: true,
+        trialStartDate: true,
+        subscriptionEndDate: true,
         createdAt: true,
       },
     });

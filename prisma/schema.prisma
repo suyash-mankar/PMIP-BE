@@ -11,14 +11,19 @@ datasource db {
 }
 
 model User {
-  id               Int               @id @default(autoincrement())
-  email            String            @unique
-  password         String?
-  googleId         String?           @unique
-  provider         String            @default("email") // email, google
-  role             String            @default("user") // user, admin
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  id                    Int               @id @default(autoincrement())
+  email                 String            @unique
+  password              String?
+  googleId              String?           @unique
+  provider              String            @default("email") // email, google
+  role                  String            @default("user") // user, admin
+  planType              String            @default("free") // free, pro_trial, pro_paid
+  trialStartDate        DateTime?
+  subscriptionEndDate   DateTime?
+  monthlyQuestionCount  Int               @default(0)
+  lastQuestionResetDate DateTime?         @default(now())
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
   
   practiceSessions PracticeSession[]
   answers          Answer[]
@@ -28,6 +33,7 @@ model User {
 
   @@index([email])
   @@index([googleId])
+  @@index([planType])
 }
 
 model Question {
@@ -63,8 +69,8 @@ model PracticeSession {
 
 model Answer {
   id                Int              @id @default(autoincrement())
-  practiceSessionId Int
-  userId            Int
+  practiceSessionId Int?             // Nullable for anonymous users
+  userId            Int?             // Nullable for anonymous users
   questionId        Int
   answerText        String           @db.Text
   transcript        String?          @db.Text // Future use for voice transcripts
@@ -73,8 +79,8 @@ model Answer {
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   
-  practiceSession   PracticeSession  @relation(fields: [practiceSessionId], references: [id], onDelete: Cascade)
-  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  practiceSession   PracticeSession? @relation(fields: [practiceSessionId], references: [id], onDelete: Cascade)
+  user              User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
   question          Question         @relation(fields: [questionId], references: [id], onDelete: Cascade)
   scores            Score?
   events            Event[]
@@ -156,4 +162,17 @@ model QuestionView {
   @@unique([userId, questionId])
   @@index([userId])
   @@index([questionId])
+}
+
+model AnonymousSession {
+  id                  Int       @id @default(autoincrement())
+  fingerprint         String    @unique
+  ipAddress           String
+  questionCount       Int       @default(0)
+  lastQuestionDate    DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  @@index([fingerprint])
+  @@index([ipAddress])
 }
