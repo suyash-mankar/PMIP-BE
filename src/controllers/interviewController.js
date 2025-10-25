@@ -4,6 +4,7 @@ const {
   callOpenAIForClarification,
   callOpenAIForRCAClarification,
   generateModelAnswer,
+  generateRCAModelAnswer,
 } = require('../services/openaiService');
 
 const startInterview = async (req, res, next) => {
@@ -448,7 +449,7 @@ const getModelAnswer = async (req, res, next) => {
     const { questionId } = req.body;
     const userId = req.user?.id;
 
-    // Get question text
+    // Get question with category
     const question = await prisma.question.findUnique({
       where: { id: parseInt(questionId) },
     });
@@ -457,8 +458,16 @@ const getModelAnswer = async (req, res, next) => {
       return res.status(404).json({ error: 'Question not found' });
     }
 
-    // Generate model answer
-    const modelAnswer = await generateModelAnswer(question.text);
+    // Detect if RCA question
+    const isRCAQuestion =
+      question.category === 'RCA' ||
+      question.category?.toLowerCase().includes('root cause') ||
+      question.category?.toLowerCase().includes('rca');
+
+    // Generate appropriate model answer
+    const modelAnswer = isRCAQuestion
+      ? await generateRCAModelAnswer(question.text)
+      : await generateModelAnswer(question.text);
 
     // Log event (only for authenticated users)
     if (userId) {
@@ -468,6 +477,8 @@ const getModelAnswer = async (req, res, next) => {
           eventType: 'model_answer_viewed',
           metadata: JSON.stringify({
             questionId: question.id,
+            category: question.category,
+            isRCA: isRCAQuestion,
           }),
         },
       });
@@ -476,6 +487,7 @@ const getModelAnswer = async (req, res, next) => {
     res.json({
       modelAnswer,
       questionText: question.text,
+      category: question.category,
     });
   } catch (error) {
     console.error('Get model answer error:', error);

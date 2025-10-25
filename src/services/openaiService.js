@@ -929,6 +929,157 @@ STYLE GUIDELINES:
 }
 
 /**
+ * Generate a perfect 10/10 RCA model answer showing Q&A conversation
+ * @param {string} question - The RCA interview question
+ * @returns {Promise<string>} Perfect RCA model answer with conversation format
+ */
+async function generateRCAModelAnswer(question) {
+  const prompt = `You are demonstrating a PERFECT 10/10 Root Cause Analysis interview.
+
+QUESTION:
+${question}
+
+YOUR TASK:
+Show a complete RCA interview conversation demonstrating:
+1. What clarifying questions the candidate should ask
+2. Interviewer responses with believable hypothetical data
+3. Final synthesized answer following RCA framework
+
+FORMAT YOUR ANSWER:
+
+## 🔍 Phase 1: Problem Definition & Scope
+
+**CANDIDATE ASKS:** "Can you clarify the timeline? When exactly did this issue start?"
+
+**INTERVIEWER:** "Good question. Our data shows the metric started declining on January 15th. It was gradual at first, then became more pronounced after January 20th."
+
+**CANDIDATE ASKS:** "What's the magnitude of the drop? Can you share specific numbers?"
+
+**INTERVIEWER:** "Looking at our analytics, we went from 50K daily active users to 42.5K - that's a 15% decline over 3 weeks."
+
+**CANDIDATE ASKS:** "Which other metrics are affected? Is this isolated or are related metrics impacted?"
+
+**INTERVIEWER:** "Engagement time per session also dropped from 8 minutes to 6.5 minutes. However, signup rate remained stable at around 2K new users per week."
+
+[Continue with 5-7 more clarifying questions covering all these areas:]
+
+**Scope Investigation:**
+- Platform breakdown (iOS/Android/Web)
+- Geographic distribution
+- User segments (new vs. existing, demographics)
+
+**Internal Factors:**
+- Recent product changes, deployments, or feature releases
+- Technical issues or infrastructure changes
+- Operational changes (pricing, policies, team changes)
+
+**External Factors:**
+- Competitor actions or launches
+- Seasonal trends or external events
+- Market dynamics
+
+---
+
+## 📊 Phase 2: Investigation Summary
+
+After gathering all the information, here's what we know:
+
+**Timeline & Magnitude:**
+- Decline started January 15th
+- 15% drop in DAUs (50K → 42.5K)
+- Engagement time down 19% (8 min → 6.5 min)
+
+**Scope:**
+- Affects all platforms equally
+- More pronounced in 18-25 age group
+- Global, not region-specific
+
+**Internal Changes:**
+- New onboarding flow deployed January 10th
+- Changed user activation from 2 steps to 5 steps
+- No technical issues or bugs reported
+
+**External Factors:**
+- No major competitor launches
+- Not seasonal (similar period last year showed growth)
+- No significant market events
+
+**Key Observations:**
+- The drop started 5 days AFTER the onboarding change
+- New user signups stable, but activation rate dropped
+- Existing users less affected than new users
+
+---
+
+## 🎯 Phase 3: Root Cause Identification
+
+**Primary Hypothesis:**
+The new 5-step onboarding flow is creating too much friction for new users, causing them to abandon before reaching the core value proposition.
+
+**Supporting Evidence:**
+- Timing correlation: decline started 5 days after deployment (typical activation lag)
+- New users disproportionately affected vs. existing users
+- Signup rate stable but engagement down = activation problem
+- Engagement time drop suggests users aren't reaching "aha moment"
+
+**Why This is Root Cause (Not Symptom):**
+The symptom is declining DAUs and engagement. The root cause is the elongated onboarding creating friction that prevents new users from discovering core value, leading to immediate churn.
+
+---
+
+## 🚀 Phase 4: Solution & Success Metrics
+
+**Short-Term Fix (Week 1):**
+- Immediately A/B test reverting to 2-step onboarding for 50% of new users
+- Fast-track critical improvements to reduce friction in current flow
+- Add skip options for non-essential onboarding steps
+
+**Long-Term Prevention (Months 1-3):**
+- Implement progressive onboarding (show steps after users experience value)
+- Add analytics to track step-by-step drop-off in onboarding
+- Create onboarding experimentation framework
+- Establish onboarding metrics as guardrails for all product changes
+
+**Success Metrics:**
+- **Primary:** DAU recovers to 50K+ within 2 weeks of fix
+- **Secondary:** New user activation rate (Day 1 engagement) improves to >40%
+- **Guardrail:** Engagement time per session returns to 7.5+ minutes
+- **Leading indicator:** Onboarding completion rate increases from current 35% to 60%
+
+**Monitoring & Validation:**
+- Daily tracking of cohort behavior (pre-fix vs. post-fix users)
+- Weekly funnel analysis of onboarding steps
+- User interviews with recent signups to validate hypothesis
+
+---
+
+**FORMATTING NOTES:**
+- Use ## for main phase headings
+- Use **bold** for CANDIDATE ASKS and INTERVIEWER labels
+- Use **bold** for key terms, metrics, and important points
+- Use bullet points for lists and observations
+- Use proper markdown throughout
+- Keep it professional and comprehensive like a top PM candidate`;
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-5',
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are demonstrating a perfect 10/10 RCA interview. Show clarifying questions, interviewer responses with hypothetical data, and synthesized final answer. Use markdown formatting professionally.',
+      },
+      {
+        role: 'user',
+        content: prompt,
+      },
+    ],
+  });
+
+  return completion.choices[0].message.content;
+}
+
+/**
  * Call OpenAI API to answer clarifying questions during PM interview
  * Acts as an interviewer who helps clarify the question context
  * @param {string} question - The original interview question
@@ -1054,6 +1205,7 @@ module.exports = {
   callOpenAIForClarification,
   callOpenAIForRCAClarification,
   generateModelAnswer,
+  generateRCAModelAnswer,
   SCORING_PROMPT_TEMPLATE,
   RCA_SCORING_PROMPT_TEMPLATE,
 };
