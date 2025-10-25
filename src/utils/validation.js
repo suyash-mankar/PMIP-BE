@@ -24,6 +24,15 @@ const submitAnswerSchema = Joi.object({
 
 const scoreSchema = Joi.object({
   answerId: Joi.number().integer().positive().required(),
+  conversationHistory: Joi.array()
+    .items(
+      Joi.object({
+        role: Joi.string().valid('user', 'assistant').required(),
+        content: Joi.string().required(),
+      })
+    )
+    .optional()
+    .allow(null),
 });
 
 const createCheckoutSchema = Joi.object({

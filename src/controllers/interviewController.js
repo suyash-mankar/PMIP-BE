@@ -1,6 +1,10 @@
 const { safeQuery, prisma } = require('../utils/dbHelper');
 const { scoreSession, scoreSessionSummarised } = require('../services/scoreService');
-const { callOpenAIForClarification, generateModelAnswer } = require('../services/openaiService');
+const {
+  callOpenAIForClarification,
+  callOpenAIForRCAClarification,
+  generateModelAnswer,
+} = require('../services/openaiService');
 
 const startInterview = async (req, res, next) => {
   try {
@@ -191,7 +195,7 @@ const submitAnswer = async (req, res, next) => {
 
 const score = async (req, res, next) => {
   try {
-    const { answerId } = req.body;
+    const { answerId, conversationHistory } = req.body;
     const userId = req.user?.id;
 
     // Fetch answer with question
@@ -218,8 +222,8 @@ const score = async (req, res, next) => {
     if (existingScore && existingScore.status === 'completed_summary') {
       console.log('Updating summary score with detailed feedback...');
 
-      // Score the answer using OpenAI for detailed feedback
-      const scoreResult = await scoreSession(answer);
+      // Score the answer using OpenAI for detailed feedback (pass conversation history for RCA)
+      const scoreResult = await scoreSession(answer, conversationHistory);
 
       return res.json({
         message: 'Answer scored successfully with detailed feedback',
@@ -235,8 +239,8 @@ const score = async (req, res, next) => {
       });
     }
 
-    // Score the answer using OpenAI
-    const scoreResult = await scoreSession(answer);
+    // Score the answer using OpenAI (pass conversation history for RCA)
+    const scoreResult = await scoreSession(answer, conversationHistory);
 
     res.json({
       message: 'Answer scored successfully',
@@ -249,7 +253,7 @@ const score = async (req, res, next) => {
 
 const scoreSummarised = async (req, res, next) => {
   try {
-    const { answerId } = req.body;
+    const { answerId, conversationHistory } = req.body;
     const userId = req.user?.id;
 
     // Fetch answer with question
@@ -280,8 +284,8 @@ const scoreSummarised = async (req, res, next) => {
       });
     }
 
-    // Score the answer using OpenAI with summarised feedback
-    const scoreResult = await scoreSessionSummarised(answer);
+    // Score the answer using OpenAI with summarised feedback (pass conversation history for RCA)
+    const scoreResult = await scoreSessionSummarised(answer, conversationHistory);
 
     res.json({
       message: 'Answer scored successfully',
@@ -366,11 +370,16 @@ const clarify = async (req, res, next) => {
       return res.status(404).json({ error: 'Question not found' });
     }
 
-    // Call OpenAI for clarification
-    const { response, tokensUsed } = await callOpenAIForClarification(
-      question.text,
-      conversationHistory || []
-    );
+    // Detect if this is an RCA question
+    const isRCAQuestion =
+      question.category === 'RCA' ||
+      question.category?.toLowerCase().includes('root cause') ||
+      question.category?.toLowerCase().includes('rca');
+
+    // Call appropriate OpenAI function based on category
+    const { response, tokensUsed } = isRCAQuestion
+      ? await callOpenAIForRCAClarification(question.text, conversationHistory || [])
+      : await callOpenAIForClarification(question.text, conversationHistory || []);
 
     // Log the clarification event (only for authenticated users)
     if (userId) {

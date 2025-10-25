@@ -208,6 +208,212 @@ STRICT RULES:
 `;
 
 /**
+ * RCA-Specific PM Interview Answer Evaluator
+ * Evaluates both clarifying questions AND final answer for Root Cause Analysis
+ */
+const RCA_SCORING_PROMPT_TEMPLATE = (question, answer, conversationHistory = []) => `
+I'm your interviewer today - a Senior PM at a top tech company with extensive experience in Root Cause Analysis. I've conducted 200+ PM interviews and I'm here to give you honest, actionable feedback on your RCA performance.
+
+**SCORING GUIDANCE FOR RCA:**
+This is a Root Cause Analysis question. Evaluate BOTH the quality of clarifying questions asked AND the final answer. Strong RCA performance requires:
+1. **Systematic investigation** through clarifying questions (50% weight)
+2. **Structured final answer** using RCA framework (50% weight)
+
+---
+
+QUESTION:
+${question}
+
+CLARIFYING QUESTIONS & INVESTIGATION:
+${
+  conversationHistory.length > 0
+    ? conversationHistory
+        .map((msg, idx) => `${msg.role === 'user' ? 'CANDIDATE' : 'INTERVIEWER'}: ${msg.content}`)
+        .join('\n\n')
+    : 'No clarifying questions were asked.'
+}
+
+FINAL ANSWER:
+${answer}
+
+---
+
+**EVALUATION FRAMEWORK:**
+
+## PART 1: CLARIFYING QUESTIONS EVALUATION (50% weight)
+
+Assess the quality and breadth of their investigation through clarifying questions:
+
+### Investigation Coverage (Score: 0-10)
+- **External Factors Explored:**
+  - Did they ask about competitors, market trends, external events?
+  - Depth of questioning in this area?
+  
+- **Internal Factors Explored:**
+  - Technical issues (bugs, deployments, infrastructure)?
+  - Product changes (new features, UI changes, flows)?
+  - Operational changes (pricing, policies, team)?
+  
+- **Data Requests:**
+  - Timeline and magnitude (when did it start, how big is the drop)?
+  - Scope (platform, geography, user segments affected)?
+  - Related metrics (what else is impacted)?
+  - Funnel analysis (where in the user journey)?
+
+### Framework & Methodology (Score: 0-10)
+- Did they show systematic investigation approach (5 Whys, Fishbone, user journey)?
+- Did they move from broad hypotheses to specific investigation?
+- Did they prioritize high-impact hypotheses first?
+
+**Clarifying Questions Score:** /10 (average of coverage and methodology)
+
+---
+
+## PART 2: FINAL ANSWER EVALUATION (50% weight)
+
+Evaluate their final answer using the RCA framework:
+
+### Step 1: Problem Definition
+- **What you did:** [Did they clearly define the problem scope, metrics affected, magnitude?]
+- **What was missing:** [Gaps in problem clarification]
+- **Impact:** [Why this matters]
+
+### Step 2: Hypothesis Formation
+- **What you did:** [Did they formulate broad hypotheses covering external AND internal factors?]
+- **What was missing:** [Missing hypothesis categories]
+- **Impact:** [Why this matters]
+
+### Step 3: Investigation Approach
+- **What you did:** [Did they describe data-driven investigation, prioritization, user journey mapping?]
+- **What was missing:** [Gaps in investigation methodology]
+- **Impact:** [Why this matters]
+
+### Step 4: Root Cause Identification
+- **What you did:** [Did they pinpoint the root cause with evidence?]
+- **What was missing:** [Lack of evidence or multiple causes not addressed]
+- **Impact:** [Why this matters]
+
+### Step 5: Solution Proposal
+- **What you did:** [Short-term fix AND long-term prevention?]
+- **What was missing:** [Missing immediate action or systemic fixes]
+- **Impact:** [Why this matters]
+
+### Step 6: Success Metrics
+- **What you did:** [Did they define how to measure success of the fix?]
+- **What was missing:** [Lack of concrete metrics]
+- **Impact:** [Why this matters]
+
+**Final Answer Score:** /10
+
+---
+
+## YOUR STRENGTHS
+
+I noticed these strong points in your RCA approach:
+
+- **[Specific strength from questions OR answer]:** [Concrete example]
+- **[Another strength]:** [Example]
+- **[Third strength if applicable]:** [Example]
+
+---
+
+## CRITICAL GAPS TO ADDRESS
+
+Here's what would hurt you in a real RCA interview:
+
+- **[Gap 1]:** [Why it matters] → [What to do instead with specific example]
+- **[Gap 2]:** [Why it matters] → [What to do instead]
+- **[Gap 3]:** [Why it matters] → [What to do instead]
+- **[Gap 4-6 if applicable]:** [Continue pattern]
+
+---
+
+## BOTTOM LINE
+
+[One sentence brutal truth about their RCA performance combining both investigation and final answer quality]
+
+---
+
+**FORMAT YOUR FEEDBACK WITH MARKDOWN:**
+- Use ## for main section headings
+- Use ### for subsection headings
+- Use **bold** for key terms and critical issues
+- Use *italics* for emphasis
+- Use bullet points and numbered lists
+- Use proper paragraph breaks for readability
+
+OUTPUT FORMAT (JSON):
+{
+  "overall_score": 0-10 [Weighted average: 50% clarifying questions + 50% final answer],
+  "summary_feedback": "Brief 2-3 sentence summary covering both investigation quality and final answer",
+  "detailed_feedback": "[Full markdown formatted feedback following structure above]",
+  "dimension_scores": {
+    "problem_definition": 0-10 [Rate how well they clarified scope, timeline, magnitude, and affected metrics],
+    "investigation_methodology": 0-10 [Rate systematic investigation - coverage of internal/external factors, framework usage (5 Whys, Fishbone)],
+    "data_driven_analysis": 0-10 [Rate quality of data requests and use of data to validate hypotheses],
+    "root_cause_identification": 0-10 [Rate ability to identify actual root cause vs symptoms with evidence],
+    "solution_quality": 0-10 [Rate solution comprehensiveness - short-term fix, long-term prevention, and success metrics]
+  },
+  "clarifying_questions_score": 0-10 [Quality of investigation through questions],
+  "final_answer_score": 0-10 [Quality of structured final answer],
+  "strengths": [
+    "Specific strength with example",
+    "Another strength with example",
+    "Third strength if applicable"
+  ],
+  "gaps": [
+    "Gap 1: Why it matters → What to do instead",
+    "Gap 2: Why it matters → What to do instead",
+    "Gap 3-6: Continue pattern"
+  ],
+  "brutal_truth": "One sentence about RCA performance"
+}
+
+**RCA SCORING RUBRIC:**
+
+**RCA-Specific Dimension Scoring (Score each independently):**
+
+1. **problem_definition (0-10):**
+   - 8-10: Clearly defined scope, timeline, magnitude, and affected metrics through clarifying questions
+   - 5-7: Defined some aspects but missed key details (timeline, scope, or magnitude)
+   - 0-4: Vague problem definition, didn't clarify scope or magnitude
+
+2. **investigation_methodology (0-10):**
+   - 8-10: Systematic approach, covered both internal AND external factors, used frameworks (5 Whys, Fishbone, user journey)
+   - 5-7: Some systematic investigation but missed internal OR external factors, limited framework usage
+   - 0-4: Random questioning without strategy, no framework, missed major factor categories
+
+3. **data_driven_analysis (0-10):**
+   - 8-10: Asked for relevant data (user segments, funnel analysis, related metrics), used data to validate hypotheses
+   - 5-7: Asked for some data but missed key metrics or didn't use data to validate
+   - 0-4: Minimal data requests, didn't validate with data
+
+4. **root_cause_identification (0-10):**
+   - 8-10: Identified actual root cause (not just symptoms) with clear evidence from investigation
+   - 5-7: Identified a cause but may have confused symptoms with root cause, weak evidence
+   - 0-4: Only identified symptoms, no clear root cause, no evidence
+
+5. **solution_quality (0-10):**
+   - 8-10: Comprehensive solution with short-term fix, long-term prevention, and clear success metrics
+   - 5-7: Has solution but missing either immediate fix, prevention strategy, or metrics
+   - 0-4: Vague solution, no prevention strategy, no success metrics
+
+**Overall Scoring:**
+- **Clarifying Questions (50%):** Based on problem_definition + investigation_methodology + data_driven_analysis
+- **Final Answer (50%):** Based on all 5 dimensions with emphasis on root_cause_identification + solution_quality
+- **Overall Score:** Weighted average (50% clarifying questions + 50% final answer)
+
+STRICT RULES:
+- Always output pure JSON only
+- Use markdown formatting in detailed_feedback field
+- Score each RCA dimension independently (don't give all dimensions the same score)
+- Be specific with examples from their clarifying questions AND answer
+- Evaluate clarifying questions separately from final answer
+- Include both scores in response: clarifying_questions_score and final_answer_score
+- Overall score is weighted average (50-50 split)
+`;
+
+/**
  * Call OpenAI API to score an answer
  * @param {string} question - The interview question
  * @param {string} answer - The candidate's answer
@@ -772,11 +978,82 @@ Remember: Keep it short, direct, and conversational like a real interviewer woul
   return { response, tokensUsed };
 }
 
+/**
+ * Call OpenAI API for RCA-specific clarification
+ * Generates hypothetical data and guides systematic investigation
+ * @param {string} question - The original RCA interview question
+ * @param {Array} conversationHistory - Array of {role, content} message objects
+ * @returns {Promise<string>} AI response to the clarification
+ */
+async function callOpenAIForRCAClarification(question, conversationHistory) {
+  const systemPrompt = `You are an experienced Product Management interviewer conducting a Root Cause Analysis (RCA) interview. 
+The candidate has been asked the following question:
+
+"${question}"
+
+Your role is to:
+1. **Generate realistic hypothetical data** when the candidate asks for metrics, numbers, or data points
+   - DO NOT use real internet data - make up believable numbers
+   - Examples: "15% drop over 3 months", "from 50K to 42.5K daily active users", "$2.3M in monthly revenue"
+   - Be consistent - if you say something dropped by 15%, maintain that number throughout the conversation
+
+2. **Store and remember the data you provide** to maintain consistency
+   - Reference your previous responses: "As I mentioned, the 15% drop started in January..."
+   - Build on the hypothetical scenario you're creating
+
+3. **Be conversational and realistic** like a real interviewer:
+   - Keep responses 1-3 sentences for simple questions
+   - Provide more detail when asked about specific areas (timeline, scope, magnitude, related metrics)
+   - Use phrases like: "Our data shows...", "Looking at the analytics...", "From what we can see..."
+
+4. **Do NOT ask questions back to the candidate**
+   - Simply answer what they asked
+   - Do NOT prompt them with follow-up questions like "What else would you want to know?" or "Does that help narrow it down?"
+   - Do NOT guide them with questions - they should drive the investigation
+   - Just provide the information requested
+
+5. **Subtly encourage investigation through your answers** (without asking questions):
+   - When appropriate, mention related areas they might want to explore
+   - Example: "The drop started in January across all platforms" (instead of "Does that suggest anything?")
+   - Let them decide what to investigate next based on your answers
+
+Examples of good RCA responses:
+- "Looking at our data, DAUs dropped from 50K to 42.5K - that's a 15% decline starting in mid-January."
+- "The drop affected both iOS and Android equally, around 15% on each platform."
+- "We did deploy a new onboarding flow on January 10th, which changed the signup process significantly."
+- "Conversion rate at checkout dropped from 8% to 6.8%. No major competitor launched anything new that we're aware of."
+- "By 'Live Audio metrics,' I mean the number of live sessions, listener counts, and engagement during those sessions. We've seen a 30% increase in live sessions, and listener counts rose from 200K to 260K in the past three months."
+
+Remember: Generate believable hypothetical data, stay consistent, answer only what was asked, and DO NOT ask questions back to the candidate.`;
+
+  const messages = [
+    {
+      role: 'system',
+      content: systemPrompt,
+    },
+    ...conversationHistory,
+  ];
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: messages,
+    temperature: 0.7, // Balanced for consistency and creativity
+    max_tokens: 1500, // More tokens for detailed RCA responses
+  });
+
+  const response = completion.choices[0].message.content;
+  const tokensUsed = completion.usage.total_tokens;
+
+  return { response, tokensUsed };
+}
+
 module.exports = {
   callOpenAIForScoring,
   callOpenAIForSummarisedScoring,
   parseAndValidateScore,
   callOpenAIForClarification,
+  callOpenAIForRCAClarification,
   generateModelAnswer,
   SCORING_PROMPT_TEMPLATE,
+  RCA_SCORING_PROMPT_TEMPLATE,
 };

@@ -3,6 +3,7 @@ const {
   callOpenAIForScoring,
   callOpenAIForSummarisedScoring,
   parseAndValidateScore,
+  RCA_SCORING_PROMPT_TEMPLATE,
 } = require('./openaiService');
 const { getCategoryScoringPrompt } = require('./categoryScoringService');
 const { calculateWeightedScore } = require('../utils/scoringUtils');
@@ -12,22 +13,40 @@ const MAX_RETRIES = 2;
 /**
  * Score an answer using OpenAI with retry logic
  * @param {Object} answer - Answer object with question included
+ * @param {Array} conversationHistory - Optional conversation history for RCA questions
  * @returns {Promise<Object>} Score object
  */
-async function scoreSession(answer) {
+async function scoreSession(answer, conversationHistory = []) {
   let attempt = 0;
   let lastError = null;
 
   while (attempt <= MAX_RETRIES) {
     try {
-      // Get category-specific scoring prompt
-      const scoringPrompt = getCategoryScoringPrompt(
-        answer.question.text,
-        answer.answerText,
-        answer.question.category
-      );
+      // Detect if this is an RCA question
+      const isRCAQuestion =
+        answer.question.category === 'RCA' ||
+        answer.question.category?.toLowerCase().includes('root cause') ||
+        answer.question.category?.toLowerCase().includes('rca');
 
-      // Call OpenAI with category-specific prompt
+      let scoringPrompt;
+
+      // Use RCA-specific prompt for RCA questions with conversation history
+      if (isRCAQuestion && conversationHistory && conversationHistory.length > 0) {
+        scoringPrompt = RCA_SCORING_PROMPT_TEMPLATE(
+          answer.question.text,
+          answer.answerText,
+          conversationHistory
+        );
+      } else {
+        // Get category-specific scoring prompt for non-RCA questions
+        scoringPrompt = getCategoryScoringPrompt(
+          answer.question.text,
+          answer.answerText,
+          answer.question.category
+        );
+      }
+
+      // Call OpenAI with appropriate prompt
       const { content, tokensUsed } = await callOpenAIForScoring(
         answer.question.text,
         answer.answerText,
@@ -36,6 +55,9 @@ async function scoreSession(answer) {
 
       // Parse and validate
       const scoreData = parseAndValidateScore(content);
+
+      // Store original dimension scores from AI (for RCA questions)
+      const originalDimensionScores = scoreData.dimension_scores || {};
 
       // Extract dimension scores from the response (ALWAYS required now)
       let extractedScores = {
@@ -51,7 +73,7 @@ async function scoreSession(answer) {
         const dims = scoreData.dimension_scores;
 
         // Extract scores (handle both nested {score: X} format and direct number format)
-        // Also handle category-specific dimension names
+        // Also handle category-specific dimension names including RCA dimensions
         extractedScores.structure =
           dims.structure?.score ||
           dims.structure ||
@@ -60,29 +82,37 @@ async function scoreSession(answer) {
           dims.goal_clarity?.score ||
           dims.framework_selection?.score ||
           dims.market_analysis?.score ||
+          dims.problem_definition?.score || // RCA: problem definition
           0;
         extractedScores.metrics =
-          dims.metrics?.score || dims.metrics || dims.metric_selection?.score || 0;
+          dims.metrics?.score ||
+          dims.metrics ||
+          dims.metric_selection?.score ||
+          dims.data_driven_analysis?.score || // RCA: data-driven analysis
+          0;
         extractedScores.prioritization =
           dims.prioritization?.score ||
           dims.prioritization ||
           dims.solution_prioritization?.score ||
           dims.solution_ideation?.score ||
+          dims.investigation_methodology?.score || // RCA: investigation methodology
           0;
         extractedScores.userEmpathy =
           dims.user_empathy?.score ||
           dims.user_empathy ||
-          dims.problem_definition?.score ||
           dims.pain_point_identification?.score ||
+          dims.root_cause_identification?.score || // RCA: root cause identification
           0;
         extractedScores.communication =
           dims.communication?.score ||
           dims.communication ||
           dims.execution?.score ||
           dims.calculation_logic?.score ||
+          dims.solution_quality?.score || // RCA: solution quality
           0;
 
         console.log('✅ Extracted dimension scores:', extractedScores);
+        console.log('✅ Original dimension scores from AI:', originalDimensionScores);
       } else {
         console.warn('⚠️  AI response missing dimension_scores object - will use fallback scoring');
         console.warn('⚠️  Response keys:', Object.keys(scoreData));
@@ -389,7 +419,16 @@ async function scoreSession(answer) {
         },
       });
 
-      return score;
+      // Add original dimension scores to response (for RCA questions with specific dimension names)
+      const scoreWithOriginalDimensions = {
+        ...score,
+        // Include original AI dimension scores if they exist (for RCA: problem_definition, etc.)
+        ...(Object.keys(originalDimensionScores).length > 0 && {
+          rcaDimensions: originalDimensionScores,
+        }),
+      };
+
+      return scoreWithOriginalDimensions;
     } catch (error) {
       lastError = error;
       attempt++;
@@ -459,22 +498,40 @@ async function scoreSession(answer) {
 /**
  * Score an answer using OpenAI with summarised feedback (faster)
  * @param {Object} answer - Answer object with question included
+ * @param {Array} conversationHistory - Optional conversation history for RCA questions
  * @returns {Promise<Object>} Score object with summarised feedback
  */
-async function scoreSessionSummarised(answer) {
+async function scoreSessionSummarised(answer, conversationHistory = []) {
   let attempt = 0;
   let lastError = null;
 
   while (attempt <= MAX_RETRIES) {
     try {
-      // Get category-specific scoring prompt
-      const scoringPrompt = getCategoryScoringPrompt(
-        answer.question.text,
-        answer.answerText,
-        answer.question.category
-      );
+      // Detect if this is an RCA question
+      const isRCAQuestion =
+        answer.question.category === 'RCA' ||
+        answer.question.category?.toLowerCase().includes('root cause') ||
+        answer.question.category?.toLowerCase().includes('rca');
 
-      // Call OpenAI with category-specific prompt using summarised scoring
+      let scoringPrompt;
+
+      // Use RCA-specific prompt for RCA questions with conversation history
+      if (isRCAQuestion && conversationHistory && conversationHistory.length > 0) {
+        scoringPrompt = RCA_SCORING_PROMPT_TEMPLATE(
+          answer.question.text,
+          answer.answerText,
+          conversationHistory
+        );
+      } else {
+        // Get category-specific scoring prompt for non-RCA questions
+        scoringPrompt = getCategoryScoringPrompt(
+          answer.question.text,
+          answer.answerText,
+          answer.question.category
+        );
+      }
+
+      // Call OpenAI with appropriate prompt using summarised scoring
       const { content, tokensUsed } = await callOpenAIForSummarisedScoring(
         answer.question.text,
         answer.answerText,
@@ -483,6 +540,9 @@ async function scoreSessionSummarised(answer) {
 
       // Parse and validate
       const scoreData = parseAndValidateScore(content);
+
+      // Store original dimension scores from AI (for RCA questions)
+      const originalDimensionScores = scoreData.dimension_scores || {};
 
       // Debug: Log feedback fields
       console.log('📝 Summarised feedback fields in scoreData:', {
@@ -507,7 +567,7 @@ async function scoreSessionSummarised(answer) {
         const dims = scoreData.dimension_scores;
 
         // Extract scores (handle both nested {score: X} format and direct number format)
-        // Also handle category-specific dimension names
+        // Also handle category-specific dimension names including RCA dimensions
         extractedScores.structure =
           dims.structure?.score ||
           dims.structure ||
@@ -516,26 +576,33 @@ async function scoreSessionSummarised(answer) {
           dims.goal_clarity?.score ||
           dims.framework_selection?.score ||
           dims.market_analysis?.score ||
+          dims.problem_definition?.score || // RCA: problem definition
           0;
         extractedScores.metrics =
-          dims.metrics?.score || dims.metrics || dims.metric_selection?.score || 0;
+          dims.metrics?.score ||
+          dims.metrics ||
+          dims.metric_selection?.score ||
+          dims.data_driven_analysis?.score || // RCA: data-driven analysis
+          0;
         extractedScores.prioritization =
           dims.prioritization?.score ||
           dims.prioritization ||
           dims.solution_prioritization?.score ||
           dims.solution_ideation?.score ||
+          dims.investigation_methodology?.score || // RCA: investigation methodology
           0;
         extractedScores.userEmpathy =
           dims.user_empathy?.score ||
           dims.user_empathy ||
-          dims.problem_definition?.score ||
           dims.pain_point_identification?.score ||
+          dims.root_cause_identification?.score || // RCA: root cause identification
           0;
         extractedScores.communication =
           dims.communication?.score ||
           dims.communication ||
           dims.execution?.score ||
           dims.calculation_logic?.score ||
+          dims.solution_quality?.score || // RCA: solution quality
           0;
 
         console.log('✅ Extracted dimension scores:', extractedScores);
@@ -774,7 +841,16 @@ async function scoreSessionSummarised(answer) {
         },
       });
 
-      return score;
+      // Add original dimension scores to response (for RCA questions with specific dimension names)
+      const scoreWithOriginalDimensions = {
+        ...score,
+        // Include original AI dimension scores if they exist (for RCA: problem_definition, etc.)
+        ...(Object.keys(originalDimensionScores).length > 0 && {
+          rcaDimensions: originalDimensionScores,
+        }),
+      };
+
+      return scoreWithOriginalDimensions;
     } catch (error) {
       attempt++;
       lastError = error;
