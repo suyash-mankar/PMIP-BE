@@ -12,6 +12,7 @@ const adminRoutes = require('./routes/admin');
 const voiceRoutes = require('./routes/voice');
 const progressRoutes = require('./routes/progress');
 const sessionRoutes = require('./routes/session');
+const newsletterRoutes = require('./routes/newsletter');
 const errorHandler = require('./middlewares/errorHandler');
 const { generalLimiter } = require('./middlewares/rateLimiter');
 
@@ -46,6 +47,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/voice', voiceRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/session', sessionRoutes);
+app.use('/api/newsletter', newsletterRoutes);
 
 // 404 handler
 app.use((req, res) => {
