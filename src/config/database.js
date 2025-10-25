@@ -10,8 +10,10 @@ function createPrismaClient() {
 
   // Build connection URL with connection pooling parameters
   // Optimized for Railway container with Supabase direct connection
-  const connectionUrl = process.env.DATABASE_URL 
-    ? `${process.env.DATABASE_URL}${process.env.DATABASE_URL.includes('?') ? '&' : '?'}connection_limit=10&pool_timeout=30`
+  const connectionUrl = process.env.DATABASE_URL
+    ? `${process.env.DATABASE_URL}${
+        process.env.DATABASE_URL.includes('?') ? '&' : '?'
+      }connection_limit=10&pool_timeout=30`
     : process.env.DATABASE_URL;
 
   // Production-optimized Prisma configuration for Supabase
