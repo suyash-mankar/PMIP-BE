@@ -8,21 +8,21 @@ function createPrismaClient() {
     return prisma;
   }
 
-  // // Build connection URL with connection pooling parameters
-  // // Optimized for Railway container with Supabase direct connection
-  // const connectionUrl = process.env.DATABASE_URL
-  //   ? `${process.env.DATABASE_URL}${
-  //       process.env.DATABASE_URL.includes('?') ? '&' : '?'
-  //     }connection_limit=10&pool_timeout=30`
-  //   : process.env.DATABASE_URL;
+  // Build connection URL with connection pooling parameters
+  // Optimized for Railway container with Supabase direct connection
+  const connectionUrl = process.env.DATABASE_URL
+    ? `${process.env.DATABASE_URL}${
+        process.env.DATABASE_URL.includes('?') ? '&' : '?'
+      }connection_limit=10&pool_timeout=30`
+    : process.env.DATABASE_URL;
 
-  // // Production-optimized Prisma configuration for Supabase
+  // Production-optimized Prisma configuration for Supabase
   prisma = new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
     errorFormat: 'minimal',
     datasources: {
       db: {
-        url: process.env.DATABASE_URL,
+        url: connectionUrl,
       },
     },
   });
