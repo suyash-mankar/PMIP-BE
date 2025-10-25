@@ -158,7 +158,7 @@ To use `api.pminterviewpractice.com`:
 - [ ] Check health endpoint returns 200 OK
 - [ ] Test API endpoints work correctly
 - [ ] Configure custom domain (optional)
-- [ ] Update frontend VITE_API_URL to point to Railway
+- [ ] Update frontend VITE_API_BASE_URL to point to Railway
 - [ ] Deploy frontend to Vercel
 - [ ] Configure Hostinger DNS
 - [ ] Test full application end-to-end
