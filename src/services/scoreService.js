@@ -4,6 +4,7 @@ const {
   callOpenAIForSummarisedScoring,
   parseAndValidateScore,
   RCA_SCORING_PROMPT_TEMPLATE,
+  GUESSTIMATE_SCORING_PROMPT_TEMPLATE,
 } = require('./openaiService');
 const { getCategoryScoringPrompt } = require('./categoryScoringService');
 const { calculateWeightedScore } = require('../utils/scoringUtils');
@@ -23,10 +24,18 @@ async function scoreSession(answer, conversationHistory = []) {
   while (attempt <= MAX_RETRIES) {
     try {
       // Detect if this is an RCA question
+      const categoryLower = answer.question.category?.toLowerCase() || '';
       const isRCAQuestion =
-        answer.question.category === 'RCA' ||
-        answer.question.category?.toLowerCase().includes('root cause') ||
-        answer.question.category?.toLowerCase().includes('rca');
+        categoryLower === 'rca' ||
+        categoryLower.includes('root cause') ||
+        categoryLower.includes('rca');
+
+      // Detect if this is a Guesstimate question
+      const isGuesstiMate =
+        categoryLower.includes('guesstimate') ||
+        categoryLower.includes('market sizing') ||
+        categoryLower.includes('estimation') ||
+        categoryLower === 'quantitative';
 
       let scoringPrompt;
 
@@ -37,8 +46,15 @@ async function scoreSession(answer, conversationHistory = []) {
           answer.answerText,
           conversationHistory
         );
+      } else if (isGuesstiMate && conversationHistory && conversationHistory.length > 0) {
+        // Use Guesstimate-specific prompt for Guesstimate questions with conversation history
+        scoringPrompt = GUESSTIMATE_SCORING_PROMPT_TEMPLATE(
+          answer.question.text,
+          answer.answerText,
+          conversationHistory
+        );
       } else {
-        // Get category-specific scoring prompt for non-RCA questions
+        // Get category-specific scoring prompt for other questions
         scoringPrompt = getCategoryScoringPrompt(
           answer.question.text,
           answer.answerText,
@@ -73,7 +89,7 @@ async function scoreSession(answer, conversationHistory = []) {
         const dims = scoreData.dimension_scores;
 
         // Extract scores (handle both nested {score: X} format and direct number format)
-        // Also handle category-specific dimension names including RCA dimensions
+        // Also handle category-specific dimension names including RCA and Guesstimate dimensions
         extractedScores.structure =
           dims.structure?.score ||
           dims.structure ||
@@ -83,18 +99,24 @@ async function scoreSession(answer, conversationHistory = []) {
           dims.framework_selection?.score ||
           dims.market_analysis?.score ||
           dims.problem_definition?.score || // RCA: problem definition
+          dims.clarification_scoping?.score || // Guesstimate: clarification & scoping
+          dims.clarification_scoping ||
           0;
         extractedScores.metrics =
           dims.metrics?.score ||
           dims.metrics ||
           dims.metric_selection?.score ||
           dims.data_driven_analysis?.score || // RCA: data-driven analysis
+          dims.assumptions_calculations?.score || // Guesstimate: assumptions & calculations
+          dims.assumptions_calculations ||
           0;
         extractedScores.prioritization =
           dims.prioritization?.score ||
           dims.prioritization ||
           dims.solution_prioritization?.score ||
           dims.solution_ideation?.score ||
+          dims.structured_breakdown?.score || // Guesstimate: structured breakdown
+          dims.structured_breakdown ||
           dims.investigation_methodology?.score || // RCA: investigation methodology
           0;
         extractedScores.userEmpathy =
@@ -102,6 +124,8 @@ async function scoreSession(answer, conversationHistory = []) {
           dims.user_empathy ||
           dims.pain_point_identification?.score ||
           dims.root_cause_identification?.score || // RCA: root cause identification
+          dims.mathematical_logic?.score || // Guesstimate: mathematical logic
+          dims.mathematical_logic ||
           0;
         extractedScores.communication =
           dims.communication?.score ||
@@ -109,6 +133,8 @@ async function scoreSession(answer, conversationHistory = []) {
           dims.execution?.score ||
           dims.calculation_logic?.score ||
           dims.solution_quality?.score || // RCA: solution quality
+          dims.sanity_check?.score || // Guesstimate: sanity check
+          dims.sanity_check ||
           0;
 
         console.log('✅ Extracted dimension scores:', extractedScores);
@@ -567,7 +593,7 @@ async function scoreSessionSummarised(answer, conversationHistory = []) {
         const dims = scoreData.dimension_scores;
 
         // Extract scores (handle both nested {score: X} format and direct number format)
-        // Also handle category-specific dimension names including RCA dimensions
+        // Also handle category-specific dimension names including RCA and Guesstimate dimensions
         extractedScores.structure =
           dims.structure?.score ||
           dims.structure ||
@@ -577,18 +603,24 @@ async function scoreSessionSummarised(answer, conversationHistory = []) {
           dims.framework_selection?.score ||
           dims.market_analysis?.score ||
           dims.problem_definition?.score || // RCA: problem definition
+          dims.clarification_scoping?.score || // Guesstimate: clarification & scoping
+          dims.clarification_scoping ||
           0;
         extractedScores.metrics =
           dims.metrics?.score ||
           dims.metrics ||
           dims.metric_selection?.score ||
           dims.data_driven_analysis?.score || // RCA: data-driven analysis
+          dims.assumptions_calculations?.score || // Guesstimate: assumptions & calculations
+          dims.assumptions_calculations ||
           0;
         extractedScores.prioritization =
           dims.prioritization?.score ||
           dims.prioritization ||
           dims.solution_prioritization?.score ||
           dims.solution_ideation?.score ||
+          dims.structured_breakdown?.score || // Guesstimate: structured breakdown
+          dims.structured_breakdown ||
           dims.investigation_methodology?.score || // RCA: investigation methodology
           0;
         extractedScores.userEmpathy =
@@ -596,6 +628,8 @@ async function scoreSessionSummarised(answer, conversationHistory = []) {
           dims.user_empathy ||
           dims.pain_point_identification?.score ||
           dims.root_cause_identification?.score || // RCA: root cause identification
+          dims.mathematical_logic?.score || // Guesstimate: mathematical logic
+          dims.mathematical_logic ||
           0;
         extractedScores.communication =
           dims.communication?.score ||
@@ -603,6 +637,8 @@ async function scoreSessionSummarised(answer, conversationHistory = []) {
           dims.execution?.score ||
           dims.calculation_logic?.score ||
           dims.solution_quality?.score || // RCA: solution quality
+          dims.sanity_check?.score || // Guesstimate: sanity check
+          dims.sanity_check ||
           0;
 
         console.log('✅ Extracted dimension scores:', extractedScores);

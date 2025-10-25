@@ -3,8 +3,10 @@ const { scoreSession, scoreSessionSummarised } = require('../services/scoreServi
 const {
   callOpenAIForClarification,
   callOpenAIForRCAClarification,
+  callOpenAIForGuesstimate,
   generateModelAnswer,
   generateRCAModelAnswer,
+  generateGuesstiMateModelAnswer,
 } = require('../services/openaiService');
 
 const startInterview = async (req, res, next) => {
@@ -372,14 +374,24 @@ const clarify = async (req, res, next) => {
     }
 
     // Detect if this is an RCA question
+    const categoryLower = question.category?.toLowerCase() || '';
     const isRCAQuestion =
-      question.category === 'RCA' ||
-      question.category?.toLowerCase().includes('root cause') ||
-      question.category?.toLowerCase().includes('rca');
+      categoryLower === 'rca' ||
+      categoryLower.includes('root cause') ||
+      categoryLower.includes('rca');
+
+    // Detect if this is a Guesstimate question
+    const isGuesstiMate =
+      categoryLower.includes('guesstimate') ||
+      categoryLower.includes('market sizing') ||
+      categoryLower.includes('estimation') ||
+      categoryLower === 'quantitative';
 
     // Call appropriate OpenAI function based on category
     const { response, tokensUsed } = isRCAQuestion
       ? await callOpenAIForRCAClarification(question.text, conversationHistory || [])
+      : isGuesstiMate
+      ? await callOpenAIForGuesstimate(question.text, conversationHistory || [])
       : await callOpenAIForClarification(question.text, conversationHistory || []);
 
     // Log the clarification event (only for authenticated users)
@@ -459,14 +471,24 @@ const getModelAnswer = async (req, res, next) => {
     }
 
     // Detect if RCA question
+    const categoryLower = question.category?.toLowerCase() || '';
     const isRCAQuestion =
-      question.category === 'RCA' ||
-      question.category?.toLowerCase().includes('root cause') ||
-      question.category?.toLowerCase().includes('rca');
+      categoryLower === 'rca' ||
+      categoryLower.includes('root cause') ||
+      categoryLower.includes('rca');
+
+    // Detect if Guesstimate question
+    const isGuesstiMate =
+      categoryLower.includes('guesstimate') ||
+      categoryLower.includes('market sizing') ||
+      categoryLower.includes('estimation') ||
+      categoryLower === 'quantitative';
 
     // Generate appropriate model answer
     const modelAnswer = isRCAQuestion
       ? await generateRCAModelAnswer(question.text)
+      : isGuesstiMate
+      ? await generateGuesstiMateModelAnswer(question.text)
       : await generateModelAnswer(question.text);
 
     // Log event (only for authenticated users)

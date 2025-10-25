@@ -413,6 +413,246 @@ STRICT RULES:
 - Overall score is weighted average (50-50 split)
 `;
 
+const GUESSTIMATE_SCORING_PROMPT_TEMPLATE = (question, answer, conversationHistory = []) => `
+I'm your interviewer - a Senior PM at a top tech company who has evaluated 200+ guesstimate interviews. I'm here to give you honest, actionable feedback on your market sizing/estimation performance.
+
+**SCORING GUIDANCE FOR GUESSTIMATES:**
+This is a Guesstimate/Market Sizing question. Evaluate BOTH the quality of clarifying questions asked AND the final answer. Strong guesstimate performance requires:
+1. **Clarification through questions** (30% weight)
+2. **Structured final answer** using guesstimate framework (70% weight)
+
+---
+
+QUESTION:
+${question}
+
+CLARIFYING QUESTIONS:
+${
+  conversationHistory.length > 0
+    ? conversationHistory
+        .map((msg, idx) => `${msg.role === 'user' ? 'CANDIDATE' : 'INTERVIEWER'}: ${msg.content}`)
+        .join('\n\n')
+    : 'No clarifying questions were asked.'
+}
+
+FINAL ANSWER:
+${answer}
+
+---
+
+**GUESSTIMATE EVALUATION FRAMEWORK:**
+
+## PART 1: CLARIFYING QUESTIONS EVALUATION (30% weight)
+
+Did they ask the RIGHT clarifying questions?
+
+**Key areas to clarify:**
+- **Scope:** Geography, time period, target segment, what to include/exclude
+- **Definitions:** Clarify ambiguous terms, confirm assumptions
+- **Data Points:** Ask for necessary baseline numbers
+
+**Clarifying Questions Score:** /10
+
+---
+
+## PART 2: FINAL ANSWER EVALUATION (70% weight)
+
+### 1. Clarification & Scoping (0-10)
+Evaluate how well they defined the problem boundaries:
+
+**8-10:** Crystal clear scope - defined geography, time period, target segment, and exclusions
+**5-7:** Some scope definition but missed key boundaries (e.g., didn't clarify geography or time period)
+**0-4:** Vague scope, jumped straight to calculations without clarifying
+
+**What you did:**
+[Did they clearly set boundaries? What did they define?]
+
+**What was missing:**
+[Which boundaries were unclear or missing?]
+
+**Impact:**
+[Why this matters for the estimate]
+
+---
+
+### 2. Structured Breakdown (0-10)
+Evaluate their problem decomposition approach:
+
+**8-10:** Clear equation/formula, logical breakdown (top-down or bottom-up), systematic components
+**5-7:** Some structure but not fully equation-based, incomplete breakdown
+**0-4:** Random calculations without clear structure or methodology
+
+**What you did:**
+[Did they create an equation? Was breakdown logical?]
+
+**What was missing:**
+[Missing components, unclear methodology]
+
+**Impact:**
+[Why structure matters]
+
+---
+
+### 3. Mathematical Logic (0-10)
+Evaluate calculation clarity and simplicity:
+
+**8-10:** Clean, easy-to-follow calculations, rounded numbers, logical flow
+**5-7:** Correct but unnecessarily complex calculations, hard to follow
+**0-4:** Confusing calculations, illogical flow, or mathematical errors
+
+**What you did:**
+[Were calculations clear? Did they round numbers?]
+
+**What was missing:**
+[Complexity issues, logic gaps]
+
+**Impact:**
+[Why clarity matters]
+
+---
+
+### 4. Assumptions & Calculations (0-10)
+Evaluate assumption quality and calculation accuracy:
+
+**8-10:** All assumptions clearly stated, reasonable, calculations shown step-by-step
+**5-7:** Some assumptions unstated or unrealistic, calculations partially shown
+**0-4:** No clear assumptions, unrealistic numbers, or calculation errors
+
+**What you did:**
+[What assumptions did they state? Were they reasonable?]
+
+**What was missing:**
+[Unstated assumptions, unrealistic numbers]
+
+**Impact:**
+[Why this matters]
+
+---
+
+### 5. Sanity Check (0-10)
+Evaluate their validation and summary:
+
+**8-10:** Clear sanity check, validated with alternate method or benchmark, strong summary
+**5-7:** Quick check but not thorough, weak summary
+**0-4:** No validation, no summary, or final answer doesn't make sense
+
+**What you did:**
+[Did they validate the answer? How?]
+
+**What was missing:**
+[Missing validation, no summary]
+
+**Impact:**
+[Why sanity checking matters]
+
+---
+
+## YOUR STRENGTHS
+
+I noticed these strong points in your guesstimate approach:
+
+- **[Specific strength from questions OR answer]:** [Concrete example]
+- **[Another strength]:** [Example]
+- **[Third strength if applicable]:** [Example]
+
+---
+
+## CRITICAL GAPS TO ADDRESS
+
+Here's what would hurt you in a real guesstimate interview:
+
+- **[Gap 1]:** [Why it matters] → [What to do instead with specific example]
+- **[Gap 2]:** [Why it matters] → [What to do instead]
+- **[Gap 3]:** [Why it matters] → [What to do instead]
+- **[Gap 4-5 if applicable]:** [Continue pattern]
+
+---
+
+## BOTTOM LINE
+
+[One sentence brutal truth about their guesstimate performance combining both clarification and final answer quality]
+
+---
+
+**FORMAT YOUR FEEDBACK WITH MARKDOWN:**
+- Use ## for main section headings
+- Use ### for subsection headings
+- Use **bold** for key terms and critical issues
+- Use *italics* for emphasis
+- Use bullet points and numbered lists
+- Use proper paragraph breaks for readability
+
+OUTPUT FORMAT (JSON):
+{
+  "overall_score": 0-10 [Weighted average: 30% clarifying questions + 70% final answer],
+  "summary_feedback": "Brief 2-3 sentence summary covering both clarification quality and final answer",
+  "detailed_feedback": "[Full markdown formatted feedback following structure above]",
+  "dimension_scores": {
+    "clarification_scoping": 0-10 [Rate how well they defined scope, geography, time period, boundaries],
+    "structured_breakdown": 0-10 [Rate equation/formula creation, logical decomposition (top-down/bottom-up)],
+    "mathematical_logic": 0-10 [Rate calculation clarity, number rounding, logical flow],
+    "assumptions_calculations": 0-10 [Rate assumption quality and statement, calculation accuracy and completeness],
+    "sanity_check": 0-10 [Rate validation method, benchmark comparison, and summary quality]
+  },
+  "clarifying_questions_score": 0-10 [Quality of scope clarification through questions],
+  "final_answer_score": 0-10 [Quality of structured final answer],
+  "strengths": [
+    "Specific strength with example",
+    "Another strength with example",
+    "Third strength if applicable"
+  ],
+  "gaps": [
+    "Gap 1: Why it matters → What to do instead",
+    "Gap 2: Why it matters → What to do instead",
+    "Gap 3-5: Continue pattern"
+  ],
+  "brutal_truth": "One sentence about guesstimate performance"
+}
+
+**GUESSTIMATE SCORING RUBRIC:**
+
+**Guesstimate-Specific Dimension Scoring (Score each independently):**
+
+1. **clarification_scoping (0-10):**
+   - 8-10: Defined geography, time period, target segment, and exclusions clearly
+   - 5-7: Defined some boundaries but missed geography OR time period OR segment
+   - 0-4: Vague scope, no clear boundaries set
+
+2. **structured_breakdown (0-10):**
+   - 8-10: Clear equation, logical components, systematic approach (top-down or bottom-up)
+   - 5-7: Some structure but incomplete breakdown or unclear methodology
+   - 0-4: No clear equation, random calculations without structure
+
+3. **mathematical_logic (0-10):**
+   - 8-10: Clean calculations, rounded numbers, easy to follow, logical flow
+   - 5-7: Correct but complex calculations, somewhat hard to follow
+   - 0-4: Confusing calculations, illogical, or mathematical errors
+
+4. **assumptions_calculations (0-10):**
+   - 8-10: All assumptions stated clearly, reasonable, all calculations shown
+   - 5-7: Some assumptions missing or unrealistic, calculations partially shown
+   - 0-4: Assumptions unclear or unstated, calculations missing or wrong
+
+5. **sanity_check (0-10):**
+   - 8-10: Strong validation with alternate method/benchmark, clear summary
+   - 5-7: Basic sanity check, weak summary
+   - 0-4: No validation or summary
+
+**Overall Scoring:**
+- **Clarifying Questions (30%):** Based on clarification_scoping
+- **Final Answer (70%):** Based on all 5 dimensions equally weighted
+- **Overall Score:** Weighted average (30% clarifying questions + 70% final answer)
+
+STRICT RULES:
+- Always output pure JSON only
+- Use markdown formatting in detailed_feedback field
+- Score each dimension independently (don't give all dimensions the same score)
+- Be specific with examples from their clarifying questions AND answer
+- Evaluate clarifying questions separately from final answer
+- Include both scores in response: clarifying_questions_score and final_answer_score
+- Overall score is weighted average (30-70 split)
+`;
+
 /**
  * Call OpenAI API to score an answer
  * @param {string} question - The interview question
@@ -1080,6 +1320,185 @@ The symptom is declining DAUs and engagement. The root cause is the elongated on
 }
 
 /**
+ * Generate a perfect 10/10 Guesstimate/Market Sizing model answer
+ * @param {string} question - The guesstimate question
+ * @returns {Promise<string>} Perfect guesstimate model answer with step-by-step framework
+ */
+async function generateGuesstiMateModelAnswer(question) {
+  const prompt = `You are demonstrating a PERFECT 10/10 Guesstimate/Market Sizing answer.
+
+QUESTION:
+${question}
+
+YOUR TASK:
+Show the complete structured approach following the guesstimate framework from industry best practices.
+
+FORMAT YOUR ANSWER:
+
+## 🎯 Step 1: Clarification & Scoping
+
+**Key Questions to Ask:**
+- What geography? (India/US/Global)
+- What time period? (Per day/month/year)
+- What exactly counts? (Define the metric clearly)
+- Any segments to exclude?
+
+**For this estimate, assume:**
+- Geography: [Specify - e.g., India, Urban India, Metro cities]
+- Time Period: [Current year 2025, specify daily/monthly/yearly]
+- Scope: [Clear definition of what's being estimated]
+- Exclusions: [What we're NOT counting]
+
+---
+
+## 🏗️ Step 2: Structured Breakdown
+
+**Approach:** [Top-down or Bottom-up - explain why]
+
+**Core Equation:**
+\`\`\`
+[Create clear equation breaking down the problem]
+Example: Total = Population × % Target Segment × Usage Rate × Frequency
+\`\`\`
+
+**Why this approach:**
+[1-2 sentences explaining the logic]
+
+---
+
+## 🔢 Step 3: Assumptions & Calculations
+
+### Key Assumptions:
+
+1. **[Assumption Category 1]:**
+   - [Specific assumption]: [Number with brief rationale]
+   - [Related assumption]: [Number with brief rationale]
+
+2. **[Assumption Category 2]:**
+   - [Specific assumption]: [Number with brief rationale]
+   - [Related assumption]: [Number with brief rationale]
+
+3. **[Assumption Category 3]:**
+   - [Specific assumption]: [Number with brief rationale]
+
+### Step-by-Step Calculations:
+
+**Step 1:** Calculate [Component 1]
+- [Description] = [Calculation with rounded numbers]
+- Result: **[Number]**
+
+**Step 2:** Calculate [Component 2]
+- [Description] = [Calculation with rounded numbers]
+- Result: **[Number]**
+
+**Step 3:** Calculate [Component 3]
+- [Description] = [Calculation with rounded numbers]
+- Result: **[Number]**
+
+**Final Calculation:**
+- [Full calculation] = **[Final Result with unit]**
+
+---
+
+## ✅ Step 4: Sanity Check & Summary
+
+### Final Answer: 
+**[Clear number with unit - e.g., "Approximately 50,000 per day" or "Around 2.5 million per year"]**
+
+### Sanity Check:
+
+**Does this make sense?**
+- [Quick intuitive check - e.g., "That's about X per person/household, which seems reasonable"]
+- [Reality check - e.g., "Compared to population of Y, this represents Z%, which aligns with expectations"]
+
+**Alternative validation:**
+- [Cross-check using different approach or benchmark]
+- [Compare to known data points if available]
+
+### Summary:
+
+[2-3 sentence summary covering: approach used, key assumptions, and final answer with confidence level]
+
+---
+
+**FORMATTING NOTES:**
+- Use ## for main step headings
+- Use ### for subsections
+- Use **bold** for key numbers and terms
+- Keep all numbers simple and rounded (use 50K instead of 49,847)
+- Show your work clearly at every step
+- Be systematic and professional like a top PM candidate`;
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-5',
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are demonstrating a perfect 10/10 Guesstimate interview. Show structured breakdown with clarification, equations, assumptions, calculations, and sanity check. Use markdown formatting professionally.',
+      },
+      {
+        role: 'user',
+        content: prompt,
+      },
+    ],
+  });
+
+  return completion.choices[0].message.content;
+}
+
+/**
+ * Call OpenAI API to answer clarifying questions for Guesstimate questions
+ * Provides data points without guiding the candidate's approach
+ * @param {string} question - The original guesstimate question
+ * @param {Array} conversationHistory - Array of {role, content} message objects
+ * @returns {Promise<Object>} AI response and tokens used
+ */
+async function callOpenAIForGuesstimate(question, conversationHistory) {
+  const systemPrompt = `You are an experienced Product Management interviewer conducting a Guesstimate/Market Sizing interview.
+
+The candidate has been asked the following question:
+"${question}"
+
+Your role is to:
+1. **Answer clarifying questions directly** with specific information they need for estimation
+2. **Provide realistic constraints and data points** when asked (geography, time period, demographics, market data)
+3. **Keep responses SHORT** (1-2 sentences maximum)
+4. **DO NOT ask questions back** to the candidate
+5. **DO NOT validate or guide their approach** - let them figure out the methodology
+6. **DO NOT give away the answer** - only provide data points they specifically ask for
+
+Examples of good responses:
+- "Focus on India only, current year 2025."
+- "Assume working-age population is 18-60 years, roughly 800 million people."
+- "Tier 1 cities (Mumbai, Delhi, Bangalore, etc.) have approximately 100 million residents combined."
+- "Average household size in urban India is about 4 people."
+- "Smartphone penetration in urban areas is around 70%."
+
+Remember: Provide factual data points they need to build their estimate, but don't guide their problem-solving approach.`;
+
+  const messages = [
+    {
+      role: 'system',
+      content: systemPrompt,
+    },
+    ...conversationHistory,
+  ];
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: messages,
+    temperature: 0.7,
+    max_tokens: 1000,
+  });
+
+  const response = completion.choices[0].message.content;
+  const tokensUsed = completion.usage.total_tokens;
+
+  return { response, tokensUsed };
+}
+
+/**
  * Call OpenAI API to answer clarifying questions during PM interview
  * Acts as an interviewer who helps clarify the question context
  * @param {string} question - The original interview question
@@ -1204,8 +1623,11 @@ module.exports = {
   parseAndValidateScore,
   callOpenAIForClarification,
   callOpenAIForRCAClarification,
+  callOpenAIForGuesstimate,
   generateModelAnswer,
   generateRCAModelAnswer,
+  generateGuesstiMateModelAnswer,
   SCORING_PROMPT_TEMPLATE,
   RCA_SCORING_PROMPT_TEMPLATE,
+  GUESSTIMATE_SCORING_PROMPT_TEMPLATE,
 };
