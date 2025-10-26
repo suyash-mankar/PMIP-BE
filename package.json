@@ -10,6 +10,8 @@
     "migrate": "prisma migrate deploy",
     "migrate:dev": "prisma migrate dev",
     "seed": "node scripts/seed.js",
+    "clean:db": "node scripts/clean-database.js",
+    "clean:db:force": "node scripts/clean-database-force.js",
     "lint": "eslint src/**/*.js",
     "test": "jest --coverage",
     "test:watch": "jest --watch"
