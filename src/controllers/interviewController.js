@@ -39,12 +39,36 @@ const startInterview = async (req, res, next) => {
     }
     if (category) whereClause.category = category;
 
-    // Get random question for the specified criteria
-    const questions = await safeQuery(
-      db => db.question.findMany({ where: whereClause }),
+    // PRIORITY 1: Try to get questions from "theproductfolks" source first
+    let questions = await safeQuery(
+      db =>
+        db.question.findMany({
+          where: {
+            ...whereClause,
+            source: 'theproductfolks',
+          },
+        }),
       [],
-      'Fetch questions'
+      'Fetch Product Folks questions'
     );
+
+    // PRIORITY 2: If no Product Folks questions available, get from other sources
+    if (questions.length === 0) {
+      console.log('✓ All Product Folks questions shown, moving to other sources');
+      questions = await safeQuery(
+        db =>
+          db.question.findMany({
+            where: {
+              ...whereClause,
+              source: { not: 'theproductfolks' }, // Exclude Product Folks
+            },
+          }),
+        [],
+        'Fetch questions from other sources'
+      );
+    } else {
+      console.log(`✓ Found ${questions.length} unviewed Product Folks questions`);
+    }
 
     // Fallback: If DB failed and no questions returned, use sample question
     if (questions.length === 0) {
