@@ -8,6 +8,7 @@ const {
   generateRCAModelAnswer,
   generateGuesstiMateModelAnswer,
 } = require('../services/openaiService');
+const { fetchRagContext } = require('../services/ragContext');
 
 const startInterview = async (req, res, next) => {
   try {
@@ -411,12 +412,40 @@ const clarify = async (req, res, next) => {
       categoryLower.includes('estimation') ||
       categoryLower === 'quantitative';
 
+    // Fetch RAG context for clarification (optional, gracefully degrades)
+    let ragContext = null;
+    if (process.env.USE_RAG !== 'false') {
+      try {
+        ragContext = await fetchRagContext({
+          question: question.text,
+          category: question.category,
+          k: 3, // Fewer docs for clarifications to keep context lean
+        });
+        if (ragContext) {
+          console.log('✓ RAG context fetched for clarification');
+        }
+      } catch (ragError) {
+        console.warn('RAG context fetch failed for clarification:', ragError.message);
+      }
+    }
+
+    // Prepend RAG context to conversation history if available
+    const enhancedHistory = ragContext
+      ? [
+          {
+            role: 'system',
+            content: ragContext,
+          },
+          ...(conversationHistory || []),
+        ]
+      : conversationHistory || [];
+
     // Call appropriate OpenAI function based on category
     const { response, tokensUsed } = isRCAQuestion
-      ? await callOpenAIForRCAClarification(question.text, conversationHistory || [])
+      ? await callOpenAIForRCAClarification(question.text, enhancedHistory)
       : isGuesstiMate
-      ? await callOpenAIForGuesstimate(question.text, conversationHistory || [])
-      : await callOpenAIForClarification(question.text, conversationHistory || []);
+      ? await callOpenAIForGuesstimate(question.text, enhancedHistory)
+      : await callOpenAIForClarification(question.text, enhancedHistory);
 
     // Log the clarification event (only for authenticated users)
     if (userId) {
@@ -494,26 +523,55 @@ const getModelAnswer = async (req, res, next) => {
       return res.status(404).json({ error: 'Question not found' });
     }
 
-    // Detect if RCA question
-    const categoryLower = question.category?.toLowerCase() || '';
-    const isRCAQuestion =
-      categoryLower === 'rca' ||
-      categoryLower.includes('root cause') ||
-      categoryLower.includes('rca');
+    // Try to get cached AI exemplar first
+    const { getBestExemplar } = require('../services/exemplarService');
+    const cachedExemplar = await getBestExemplar(question.id);
 
-    // Detect if Guesstimate question
-    const isGuesstiMate =
-      categoryLower.includes('guesstimate') ||
-      categoryLower.includes('market sizing') ||
-      categoryLower.includes('estimation') ||
-      categoryLower === 'quantitative';
+    let modelAnswer;
+    let fromCache = false;
 
-    // Generate appropriate model answer
-    const modelAnswer = isRCAQuestion
-      ? await generateRCAModelAnswer(question.text)
-      : isGuesstiMate
-      ? await generateGuesstiMateModelAnswer(question.text)
-      : await generateModelAnswer(question.text);
+    if (cachedExemplar && cachedExemplar.source === 'ai_generated') {
+      // Use cached AI-generated exemplar
+      modelAnswer = cachedExemplar.content;
+      fromCache = true;
+      console.log(`✓ Serving cached model answer for Q${question.id}`);
+    } else {
+      // Generate new model answer and optionally cache it
+      console.log(`⚙️  Generating model answer for Q${question.id}...`);
+
+      const categoryLower = question.category?.toLowerCase() || '';
+      const isRCAQuestion =
+        categoryLower === 'rca' ||
+        categoryLower.includes('root cause') ||
+        categoryLower.includes('rca');
+
+      const isGuesstiMate =
+        categoryLower.includes('guesstimate') ||
+        categoryLower.includes('market sizing') ||
+        categoryLower.includes('estimation') ||
+        categoryLower === 'quantitative';
+
+      modelAnswer = isRCAQuestion
+        ? await generateRCAModelAnswer(question.text)
+        : isGuesstiMate
+        ? await generateGuesstiMateModelAnswer(question.text)
+        : await generateModelAnswer(question.text);
+
+      // Cache the generated answer for future requests (async, don't wait)
+      const { exemplarInsert } = require('../utils/vector');
+      exemplarInsert({
+        questionId: question.id,
+        source: 'ai_generated',
+        author: 'GPT-5',
+        title: `AI Exemplar: ${question.text.substring(0, 100)}`,
+        content: modelAnswer,
+        keyPoints: null,
+        qualityScore: 10,
+        version: 1,
+        sourceUrl: null,
+        sourceHash: null,
+      }).catch(err => console.error('Failed to cache model answer:', err.message));
+    }
 
     // Log event (only for authenticated users)
     if (userId) {
@@ -524,7 +582,7 @@ const getModelAnswer = async (req, res, next) => {
           metadata: JSON.stringify({
             questionId: question.id,
             category: question.category,
-            isRCA: isRCAQuestion,
+            fromCache,
           }),
         },
       });
@@ -534,6 +592,7 @@ const getModelAnswer = async (req, res, next) => {
       modelAnswer,
       questionText: question.text,
       category: question.category,
+      fromCache,
     });
   } catch (error) {
     console.error('Get model answer error:', error);

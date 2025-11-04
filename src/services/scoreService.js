@@ -8,8 +8,10 @@ const {
 } = require('./openaiService');
 const { getCategoryScoringPrompt } = require('./categoryScoringService');
 const { calculateWeightedScore } = require('../utils/scoringUtils');
+const { fetchRagContext, wrapPromptWithContext } = require('./ragContext');
 
 const MAX_RETRIES = 2;
+const USE_RAG = process.env.USE_RAG !== 'false'; // Enable RAG by default
 
 /**
  * Score an answer using OpenAI with retry logic
@@ -62,7 +64,27 @@ async function scoreSession(answer, conversationHistory = []) {
         );
       }
 
-      // Call OpenAI with appropriate prompt
+      // Inject RAG context if enabled
+      if (USE_RAG) {
+        try {
+          const ragContext = await fetchRagContext({
+            question: answer.question.text,
+            questionId: answer.question.id,
+            category: answer.question.category,
+            k: 4,
+          });
+
+          if (ragContext) {
+            scoringPrompt = wrapPromptWithContext(scoringPrompt, ragContext);
+            console.log('✓ RAG context injected into scoring prompt');
+          }
+        } catch (ragError) {
+          console.warn('RAG context fetch failed, continuing without:', ragError.message);
+          // Continue without RAG - graceful degradation
+        }
+      }
+
+      // Call OpenAI with appropriate prompt (now with optional RAG context)
       const { content, tokensUsed } = await callOpenAIForScoring(
         answer.question.text,
         answer.answerText,

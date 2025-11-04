@@ -25,11 +25,15 @@ model User {
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
   
-  practiceSessions PracticeSession[]
-  answers          Answer[]
-  payments         Payment[]
-  events           Event[]
-  questionViews    QuestionView[]
+  practiceSessions      PracticeSession[]
+  answers               Answer[]
+  payments              Payment[]
+  events                Event[]
+  questionViews         QuestionView[]
+  conversationMemory    ConversationMemory[]
+  resumeProfile         ResumeProfile?
+  jobRecommendations    JobRecommendation[]
+  flashcardProgress     FlashcardProgress[]
 
   @@index([email])
   @@index([googleId])
@@ -46,8 +50,9 @@ model Question {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  answers     Answer[]
-  views       QuestionView[]
+  answers         Answer[]
+  views           QuestionView[]
+  exemplarAnswers ExemplarAnswer[]
 
   @@index([category])
   @@index([source])
@@ -60,8 +65,9 @@ model PracticeSession {
   startedAt   DateTime  @default(now())
   endedAt     DateTime?
   
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  answers     Answer[]
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers           Answer[]
+  conversationMemory ConversationMemory[]
   
   @@index([userId])
   @@index([status])
@@ -187,4 +193,149 @@ model NewsletterSubscription {
   
   @@index([email])
   @@index([status])
+}
+
+// Vector-backed knowledge base models
+model KnowledgeDoc {
+  id          Int       @id @default(autoincrement())
+  source      String    // curated, theproductfolks, generated, article
+  title       String
+  content     String    @db.Text
+  metadata    Json      @default("{}")
+  embedding   Unsupported("vector(1536)")?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  flashcards  Flashcard[]
+
+  @@index([source])
+}
+
+model ConversationMemory {
+  id          Int              @id @default(autoincrement())
+  userId      Int
+  sessionId   Int?
+  role        String           // user, assistant, system
+  text        String           @db.Text
+  category    String?
+  metadata    Json             @default("{}")
+  embedding   Unsupported("vector(1536)")?
+  createdAt   DateTime         @default(now())
+
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session     PracticeSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([category])
+}
+
+model ResumeProfile {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @unique
+  rawText     String    @db.Text
+  structured  Json      @default("{}")
+  embedding   Unsupported("vector(1536)")?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model ExemplarAnswer {
+  id          Int       @id @default(autoincrement())
+  questionId  Int
+  source      String    // theproductfolks, ai_generated, curated
+  author      String?
+  title       String?
+  content     String    @db.Text
+  keyPoints   Json?
+  qualityScore Int      @default(10)
+  version     Int       @default(1)
+  sourceUrl   String?
+  sourceHash  String?
+  embedding   Unsupported("vector(1536)")?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  question    Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, source, version])
+  @@index([questionId])
+  @@index([source])
+}
+
+model JobPosting {
+  id              Int       @id @default(autoincrement())
+  source          String    // linkedin, indeed, google_jobs, ycombinator
+  url             String    @unique
+  title           String
+  company         String
+  location        String?
+  rawText         String?   @db.Text
+  metadata        Json      @default("{}")
+  embedding       Unsupported("vector(1536)")?
+  postedAt        DateTime?
+  scrapedAt       DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+
+  recommendations JobRecommendation[]
+
+  @@index([source])
+  @@index([company])
+  @@index([postedAt])
+}
+
+model JobRecommendation {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  jobId       Int
+  score       Decimal   @db.Decimal(3, 2)
+  sentAt      DateTime  @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job         JobPosting @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId])
+  @@index([userId])
+  @@index([sentAt])
+}
+
+model Flashcard {
+  id              Int       @id @default(autoincrement())
+  knowledgeDocId  Int
+  question        String    @db.Text
+  answer          String    @db.Text
+  category        String?
+  difficulty      String?   // easy, medium, hard
+  metadata        Json      @default("{}")
+  createdAt       DateTime  @default(now())
+
+  knowledgeDoc    KnowledgeDoc @relation(fields: [knowledgeDocId], references: [id], onDelete: Cascade)
+  progress        FlashcardProgress[]
+
+  @@index([knowledgeDocId])
+  @@index([category])
+}
+
+model FlashcardProgress {
+  id            Int       @id @default(autoincrement())
+  userId        Int
+  flashcardId   Int
+  lastReviewed  DateTime?
+  nextReview    DateTime?
+  easeFactor    Decimal   @default(2.5) @db.Decimal(3, 2)
+  interval      Int       @default(1)
+  repetitions   Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  flashcard     Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, flashcardId])
+  @@index([userId])
+  @@index([nextReview])
 }
