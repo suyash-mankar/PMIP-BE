@@ -91,7 +91,7 @@ async function kbSearch({ query, k = 5, filters = {} }) {
     metadataConditions.length > 0 ? `WHERE ${metadataConditions.join(' AND ')}` : '';
 
   const sql = `
-    SELECT id, source, title, content, "keyPoints", metadata,
+    SELECT id, source, title, content, metadata,
            1 - (embedding <=> $1::vector) AS similarity
     FROM "KnowledgeDoc"
     ${whereClause}
@@ -121,16 +121,16 @@ async function exemplarInsert({
   const result = await pool.query(
     `INSERT INTO "ExemplarAnswer"(
       "questionId", source, author, title, content, "keyPoints",
-      "qualityScore", version, "sourceUrl", "sourceHash", embedding
+      "qualityScore", version, "sourceUrl", "sourceHash", embedding, "createdAt", "updatedAt"
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::vector)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::vector, NOW(), NOW())
     ON CONFLICT ("questionId", source, version)
     DO UPDATE SET
       content = EXCLUDED.content,
       "keyPoints" = EXCLUDED."keyPoints",
       embedding = EXCLUDED.embedding,
       "sourceHash" = EXCLUDED."sourceHash",
-      "updatedAt" = now()
+      "updatedAt" = NOW()
     RETURNING id`,
     [
       questionId,

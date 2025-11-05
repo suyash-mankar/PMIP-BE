@@ -14,7 +14,7 @@ const fastLLM = new ChatOpenAI({
 
 // Thorough LLM for detailed analysis (scoring, feedback generation)
 const thoroughLLM = new ChatOpenAI({
-  modelName: 'gpt-5',
+  modelName: 'gpt-4o',
   temperature: 0.2,
   openAIApiKey: process.env.OPENAI_API_KEY,
 });

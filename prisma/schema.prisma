@@ -339,3 +339,22 @@ model FlashcardProgress {
   @@index([userId])
   @@index([nextReview])
 }
+
+model AgentExecution {
+  id          Int       @id @default(autoincrement())
+  userId      Int?
+  agentType   String    // evaluator, interviewer, curriculum, jobScout, etc.
+  input       String    @db.Text // JSON string
+  output      String?   @db.Text // JSON string, nullable
+  toolCalls   String    @db.Text @default("[]") // JSON array of tool calls
+  tokensUsed  Int       @default(0)
+  durationMs  Int       @default(0)
+  status      String    @default("success") // success, error
+  error       String?   @db.Text
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([agentType])
+  @@index([status])
+  @@index([createdAt])
+}

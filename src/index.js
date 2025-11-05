@@ -23,7 +23,7 @@ const PORT = process.env.PORT || 4000;
 // Security & Logging
 app.use(helmet());
 app.use(cors());
-app.use(morgan('combined'));
+// app.use(morgan('combined'));
 
 // Body parsing
 app.use(express.json());

@@ -7,6 +7,14 @@ const openai = require('../config/openai');
 const SCORING_PROMPT_TEMPLATE = (question, answer) => `
 I'm your interviewer today - a Senior PM at a top tech company (Google, Meta, Amazon, Stripe). I've conducted 200+ PM interviews and I'm here to give you honest, actionable feedback on your answer.
 
+**CRITICAL: HANDLING UNINTELLIGIBLE OR GIBBERISH INPUT:**
+- If the answer is clearly gibberish, random words, unintelligible text, or completely irrelevant to the question, DO NOT attempt to extract meaning or structure from it
+- DO NOT invent content, themes, or concepts that are not present in the actual answer text
+- DO NOT claim the user "mentioned X" or "acknowledged Y" if those concepts are not explicitly in their answer
+- Instead, explicitly state: "The answer provided is unintelligible/irrelevant and cannot be evaluated" or "The answer does not contain coherent content relevant to the question"
+- Score all dimensions as 0-2 if the answer is truly gibberish or unintelligible
+- Only provide feedback on what is ACTUALLY present in the answer text - do not hallucinate or assume intentions
+
 **SCORING GUIDANCE:**
 Evaluate each answer on its own merit using the full 0-10 scale. Strong answers with clear structure, data-driven thinking, and user focus should score 8-10. Adequate answers with some gaps score 5-7. Weak answers with significant issues score 0-4. Be honest and fair - reward quality where you see it.
 
@@ -79,10 +87,13 @@ I'm going to walk through your answer step-by-step and show you what you did wel
 [Continue for 5-8 key steps depending on question complexity]
 
 **For each step:**
-- Quote exact phrases from their answer when analyzing
+- Quote exact phrases from their answer when analyzing - ONLY quote what is actually written
+- If the answer is gibberish or unintelligible, state this clearly instead of trying to find meaning
+- DO NOT invent or assume content - only analyze what is explicitly present in the answer text
 - Be specific about gaps (not "lacks detail" but "no success metrics defined - should specify X% increase in Y")
 - Use **bold** for critical issues
 - Speak directly to them ("You did..." not "The candidate did...")
+- CRITICAL: If you cannot understand the answer or it contains no relevant content, say so directly - do not attempt to extract themes or structure that isn't there
 
 ---
 
@@ -93,6 +104,8 @@ I noticed these strong points in your answer:
 - **[Specific strength]:** [Concrete example from their answer showing why this was good]
 - **[Another strength]:** [Another concrete example]
 - **[Third strength if applicable]:** [Example]
+
+**CRITICAL:** If the answer is gibberish, unintelligible, or contains no coherent content, state "No identifiable strengths found - the answer could not be understood or does not address the question" instead of inventing strengths.
 
 ---
 
@@ -660,7 +673,69 @@ STRICT RULES:
  * @returns {Promise<Object>} Parsed score object
  */
 async function callOpenAIForScoring(question, answer, customPrompt = null) {
-  const prompt = customPrompt || SCORING_PROMPT_TEMPLATE(question, answer);
+  // Validate inputs
+  if (!question || !question.trim()) {
+    throw new Error('Question text is required for scoring');
+  }
+  if (!answer || !answer.trim()) {
+    throw new Error('Answer text is required for scoring. Cannot evaluate an empty answer.');
+  }
+
+  let prompt = customPrompt || SCORING_PROMPT_TEMPLATE(question, answer);
+
+  // CRITICAL FIX: If customPrompt is provided but doesn't include the answer, ensure it's added
+  // This can happen when RAG context is injected and the prompt structure changes
+  if (customPrompt && !prompt.includes(answer.trim().substring(0, 50))) {
+    console.warn('⚠️  Warning: Answer text may not be properly included in custom prompt - checking and fixing...');
+    
+    // Try to find where to insert the answer
+    if (prompt.includes('YOUR ANSWER:') || prompt.includes('ANSWER:')) {
+      // Answer section exists but answer is missing - replace it
+      const answerSectionRegex = /(YOUR ANSWER:?\s*)(.*?)(\n---|\nYOUR ANSWER EVALUATION|$)/is;
+      if (answerSectionRegex.test(prompt)) {
+        prompt = prompt.replace(answerSectionRegex, `$1${answer}\n\n$3`);
+        console.log('✅ Fixed: Replaced missing answer in prompt');
+      } else {
+        // Try to insert after QUESTION section
+        const questionSectionRegex = /(QUESTION:?\s*[^\n]+\n\n?)(YOUR ANSWER:?\s*)/i;
+        if (questionSectionRegex.test(prompt)) {
+          prompt = prompt.replace(questionSectionRegex, `$1YOUR ANSWER:\n${answer}\n\n`);
+          console.log('✅ Fixed: Inserted answer after question section');
+        } else {
+          // Last resort: append answer before evaluation section
+          const evalSectionRegex = /(YOUR ANSWER EVALUATION|EVALUATION|DETAILED ANALYSIS)/i;
+          if (evalSectionRegex.test(prompt)) {
+            prompt = prompt.replace(evalSectionRegex, `YOUR ANSWER:\n${answer}\n\n---\n\n$1`);
+            console.log('✅ Fixed: Inserted answer before evaluation section');
+          } else {
+            // Append at a reasonable location
+            prompt = `${prompt}\n\n---\n\nYOUR ANSWER:\n${answer}\n`;
+            console.log('✅ Fixed: Appended answer to prompt');
+          }
+        }
+      }
+    } else {
+      // No answer section found - add it after question
+      const questionSectionRegex = /(QUESTION:?\s*[^\n]+\n\n?)/i;
+      if (questionSectionRegex.test(prompt)) {
+        prompt = prompt.replace(questionSectionRegex, `$1YOUR ANSWER:\n${answer}\n\n---\n\n`);
+        console.log('✅ Fixed: Added answer section after question');
+      } else {
+        // Prepend answer section
+        prompt = `QUESTION:\n${question}\n\nYOUR ANSWER:\n${answer}\n\n---\n\n${prompt}`;
+        console.log('✅ Fixed: Prepended question and answer to prompt');
+      }
+    }
+    
+    // Verify fix worked
+    if (!prompt.includes(answer.trim().substring(0, 50))) {
+      console.error('❌ CRITICAL: Failed to include answer in prompt even after fix attempt!');
+      console.error('Answer preview:', answer.substring(0, 100));
+      console.error('Prompt preview:', prompt.substring(0, 500));
+    } else {
+      console.log('✅ Verified: Answer is now in prompt');
+    }
+  }
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-5', // Using GPT-5 for detailed, comprehensive feedback like ChatGPT UI
@@ -668,7 +743,7 @@ async function callOpenAIForScoring(question, answer, customPrompt = null) {
       {
         role: 'system',
         content:
-          'You are a senior PM interviewer at a top-tier tech company. You are professional, sharp, analytical, and critical. Always respond with valid JSON only. Be brutally honest in your feedback. CRITICAL SCORING REQUIREMENTS: 1) You MUST score EACH dimension INDEPENDENTLY - evaluate structure, metrics, prioritization, user_empathy, and communication separately. 2) Each dimension should have a DIFFERENT score reflecting specific observations. 3) An answer might have strong structure (8-9) but weak metrics (3-4) - score accordingly. 4) Look for specific evidence in each dimension before scoring. 5) DO NOT give all dimensions the same score - that indicates you are not evaluating independently.',
+          'You are a senior PM interviewer at a top-tier tech company. You are professional, sharp, analytical, and critical. Always respond with valid JSON only. Be brutally honest in your feedback. CRITICAL SCORING REQUIREMENTS: 1) You MUST score EACH dimension INDEPENDENTLY - evaluate structure, metrics, prioritization, user_empathy, and communication separately. 2) Each dimension should have a DIFFERENT score reflecting specific observations. 3) An answer might have strong structure (8-9) but weak metrics (3-4) - score accordingly. 4) Look for specific evidence in each dimension before scoring. 5) DO NOT give all dimensions the same score - that indicates you are not evaluating independently. 6) You MUST return dimension_scores with structure, metrics, prioritization, user_empathy, and communication fields. 7) You MUST return overall_score (0-10). 8) NEVER return guidance or "awaiting input" - always score the provided answer. 9) CRITICAL: If the answer is gibberish, unintelligible, or irrelevant, DO NOT invent content or themes. State clearly that the answer cannot be evaluated and score all dimensions as 0-2. DO NOT claim the user "mentioned X" or "acknowledged Y" if those are not explicitly in the answer text.',
       },
       {
         role: 'user',
@@ -686,6 +761,28 @@ async function callOpenAIForScoring(question, answer, customPrompt = null) {
   console.log('OpenAI Scoring Response Length:', content.length, 'characters');
   console.log('Tokens Used:', tokensUsed);
 
+  // Check if response contains guidance/error format instead of scores
+  try {
+    const parsed = JSON.parse(content);
+    if (
+      parsed.status === 'awaiting_input' ||
+      parsed.status === 'unable_to_evaluate' ||
+      parsed.error
+    ) {
+      throw new Error(
+        `LLM returned guidance instead of scores: ${
+          parsed.error || parsed.reason || 'No candidate answer provided'
+        }`
+      );
+    }
+  } catch (parseErr) {
+    // If it's not a JSON parse error, it's our validation error - rethrow
+    if (parseErr.message.includes('LLM returned guidance')) {
+      throw parseErr;
+    }
+    // Otherwise it's a JSON parse issue, let it continue
+  }
+
   return { content, tokensUsed };
 }
 
@@ -696,8 +793,16 @@ async function callOpenAIForScoring(question, answer, customPrompt = null) {
  * @returns {Promise<Object>} Parsed score object with summarised feedback
  */
 async function callOpenAIForSummarisedScoring(question, answer, customPrompt = null) {
-  // Create a much shorter, focused prompt for summarised scoring
-  const summarisedPrompt = `
+  // Validate inputs
+  if (!question || !question.trim()) {
+    throw new Error('Question text is required for scoring');
+  }
+  if (!answer || !answer.trim()) {
+    throw new Error('Answer text is required for scoring. Cannot evaluate an empty answer.');
+  }
+
+  // Use custom prompt if provided (for RCA/Guesstimate with conversation history), otherwise use default
+  const summarisedPrompt = customPrompt || `
 You are a senior PM interviewer at a top tech company. Provide SHORT, CONCISE feedback for this interview answer.
 
 QUESTION:

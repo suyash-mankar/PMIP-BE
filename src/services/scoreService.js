@@ -84,6 +84,11 @@ async function scoreSession(answer, conversationHistory = []) {
         }
       }
 
+      // Validate answer text before calling OpenAI
+      if (!answer.answerText || !answer.answerText.trim()) {
+        throw new Error('Cannot score an empty answer. Please provide an answer text.');
+      }
+
       // Call OpenAI with appropriate prompt (now with optional RAG context)
       const { content, tokensUsed } = await callOpenAIForScoring(
         answer.question.text,
