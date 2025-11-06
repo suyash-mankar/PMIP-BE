@@ -34,6 +34,8 @@ model User {
   resumeProfile         ResumeProfile?
   jobRecommendations    JobRecommendation[]
   flashcardProgress     FlashcardProgress[]
+  jobMatcherPreferences JobMatcherPreferences?
+  jobMatchRuns          JobMatchRun[]
 
   @@index([email])
   @@index([googleId])
@@ -357,4 +359,86 @@ model AgentExecution {
   @@index([agentType])
   @@index([status])
   @@index([createdAt])
+}
+
+model JobMatcherPreferences {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @unique
+  resumeFilePath  String?   // Path to saved resume file
+  resumeFileData  Bytes?    // Binary data of the resume file (PDF/DOCX)
+  resumeFileName  String?   // Original filename
+  resumeFileType  String?   // MIME type (application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document)
+  userEmail       String
+  jobIntentText   String    @db.Text
+  desiredRole     String?
+  companyPrefs    String?
+  locationPref    String?
+  remotePref      String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model JobMatchRun {
+  id              String    @id @default(uuid())
+  userId          Int?      // Link to user if logged in
+  userEmail       String
+  jobIntentText   String    @db.Text
+  desiredRole     String?
+  companyPrefs    String?
+  locationPref    String?
+  remotePref      String?
+  resumeText      String?   @db.Text
+  parsedProfile   Json?     // skills, titles, seniority, etc.
+  status          String    @default("queued") // queued, running, emailed, error
+  jobsFound       Int       @default(0)
+  emailSentAt     DateTime?
+  error           String?   @db.Text
+  metadata        Json      @default("{}")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  results         JobMatchResult[]
+
+  @@index([userId])
+  @@index([userEmail])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model JobMatchResult {
+  id              Int       @id @default(autoincrement())
+  runId           String
+  jobTitle        String
+  company         String
+  location        String?
+  description     String?   @db.Text
+  applyUrl        String
+  salary          String?
+  postedDate      String?
+  source          String    // aggregator, linkedin
+  score           Decimal   @db.Decimal(3, 2)
+  rationale       String?   @db.Text
+  rawData         Json      @default("{}")
+  createdAt       DateTime  @default(now())
+
+  run             JobMatchRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@index([score])
+}
+
+model Secret {
+  id          Int       @id @default(autoincrement())
+  key         String    @unique
+  value       String    @db.Text // Encrypted value
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([key])
 }
