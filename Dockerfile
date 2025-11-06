@@ -1,5 +1,5 @@
 # Build stage
-FROM node:18-slim AS builder
+FROM node:20-slim AS builder
 
 # Install OpenSSL and other dependencies
 RUN apt-get update -y && \
@@ -22,7 +22,7 @@ RUN npx prisma generate
 COPY . .
 
 # Production stage
-FROM node:18-slim
+FROM node:20-slim
 
 # Install OpenSSL and CA certificates
 RUN apt-get update -y && \
