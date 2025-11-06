@@ -24,65 +24,95 @@ function createTransporter() {
 }
 
 /**
+ * Send via Brevo HTTP API (fallback when SMTP is blocked)
+ */
+async function sendViaBrevoAPI({ to, subject, html, text, fromEmail, fromName }) {
+  try {
+    const apiKey = process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY;
+    if (!apiKey) {
+      return { success: false, error: "BREVO_API_KEY not configured" };
+    }
+
+    const body = {
+      sender: { email: fromEmail, name: fromName },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+      textContent: text,
+    };
+
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": apiKey,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      return { success: false, error: `Brevo API ${response.status}: ${errText}` };
+    }
+    const data = await response.json();
+    return { success: true, messageId: data?.messageId || data?.message || "brevo-api" };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
  * Send job matching results email with timeout
  */
 async function sendJobMatchEmail({ to, jobs, userIntent, runId }) {
   let transporter = null;
   
-  try {
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      console.warn("SMTP credentials not configured, skipping email");
-      return { success: false, message: "SMTP not configured" };
-    }
+  // Prepare content and sender info once
+  const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || process.env.DEFAULT_FROM_EMAIL;
+  const fromName = process.env.SMTP_FROM_NAME || "PM Interview Practice - Job Matcher";
+  const subject = `Top ${jobs.length} Job Matches for ${userIntent || "Your Search"}`;
+  const html = generateJobMatchEmailHTML({ jobs, userIntent, runId });
+  const text = generateJobMatchEmailText({ jobs, userIntent });
 
-    transporter = createTransporter();
-    const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
-    const fromName = process.env.SMTP_FROM_NAME || "PM Interview Practice - Job Matcher";
-
-    // Generate HTML email
-    const html = generateJobMatchEmailHTML({ jobs, userIntent, runId });
-
-    const mailOptions = {
-      from: `"${fromName}" <${fromEmail}>`,
-      to: to,
-      subject: `Top ${jobs.length} Job Matches for ${userIntent || "Your Search"}`,
-      html: html,
-      text: generateJobMatchEmailText({ jobs, userIntent }), // Fallback plain text
-    };
-
-    // Send email with timeout (60 seconds total)
-    const emailPromise = transporter.sendMail(mailOptions);
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error("Email send timeout after 60 seconds")), 60000);
-    });
-
-    const info = await Promise.race([emailPromise, timeoutPromise]);
-    console.log("Email sent:", info.messageId);
-    
-    // Close transporter connection (ignore errors if already closed)
+  // 1) Try SMTP first if configured
+  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
     try {
-      if (transporter) {
-        transporter.close();
-      }
-    } catch (closeError) {
-      // Ignore close errors
+      transporter = createTransporter();
+      const mailOptions = {
+        from: `"${fromName}" <${fromEmail}>`,
+        to,
+        subject,
+        html,
+        text,
+      };
+
+      const emailPromise = transporter.sendMail(mailOptions);
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Email send timeout after 60 seconds")), 60000);
+      });
+
+      const info = await Promise.race([emailPromise, timeoutPromise]);
+      console.log("Email sent:", info.messageId);
+      try { if (transporter) transporter.close(); } catch (_) {}
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      console.error("Email send error (SMTP):", error);
+      try { if (transporter && transporter.close) transporter.close(); } catch (_) {}
+      // Fall through to HTTP API fallback
     }
-    
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error("Email send error:", error);
-    
-    // Ensure transporter is closed even on error
-    try {
-      if (transporter && transporter.close) {
-        transporter.close();
-      }
-    } catch (closeError) {
-      // Ignore close errors
-    }
-    
-    return { success: false, error: error.message };
+  } else {
+    console.warn("SMTP not configured, will try Brevo HTTP API");
   }
+
+  // 2) Fallback to Brevo HTTP API over HTTPS (works on platforms that block SMTP)
+  const apiResult = await sendViaBrevoAPI({ to, subject, html, text, fromEmail, fromName });
+  if (apiResult.success) {
+    console.log("Email sent via Brevo API:", apiResult.messageId);
+    return apiResult;
+  }
+
+  // 3) Out of options
+  return { success: false, error: apiResult.error || "Email send failed (SMTP and API)" };
 }
 
 /**
