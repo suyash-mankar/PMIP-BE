@@ -121,12 +121,23 @@ const handleWebhook = async (req, res, next) => {
         });
 
         if (payment) {
+          const subscriptionEndDate = new Date(subscription.current_end * 1000); // Convert Unix timestamp
+          
           await prisma.payment.update({
             where: { id: payment.id },
             data: {
               status: 'completed',
               razorpayCustomerId: subscription.customer_id,
-              subscriptionEndDate: new Date(subscription.current_end * 1000), // Convert Unix timestamp
+              subscriptionEndDate,
+            },
+          });
+
+          // Update user's planType to pro_paid
+          await prisma.user.update({
+            where: { id: payment.userId },
+            data: {
+              planType: 'pro_paid',
+              subscriptionEndDate,
             },
           });
 
@@ -142,7 +153,7 @@ const handleWebhook = async (req, res, next) => {
             },
           });
 
-          console.log(`✅ Subscription activated: ${subscription.id}`);
+          console.log(`✅ Subscription activated: ${subscription.id} - User ${payment.userId} upgraded to pro_paid`);
         }
         break;
       }
@@ -157,13 +168,24 @@ const handleWebhook = async (req, res, next) => {
         });
 
         if (existingPayment) {
+          const subscriptionEndDate = new Date(subscription.current_end * 1000);
+          
           await prisma.payment.update({
             where: { id: existingPayment.id },
             data: {
               razorpayPaymentId: payment.id,
               status: 'completed',
-              subscriptionEndDate: new Date(subscription.current_end * 1000),
+              subscriptionEndDate,
               updatedAt: new Date(),
+            },
+          });
+
+          // Update user's planType to pro_paid and extend subscription
+          await prisma.user.update({
+            where: { id: existingPayment.userId },
+            data: {
+              planType: 'pro_paid',
+              subscriptionEndDate,
             },
           });
 
@@ -181,7 +203,7 @@ const handleWebhook = async (req, res, next) => {
             },
           });
 
-          console.log(`💰 Subscription charged: ${subscription.id}`);
+          console.log(`💰 Subscription charged: ${subscription.id} - User ${existingPayment.userId} subscription extended`);
         }
         break;
       }
@@ -203,6 +225,26 @@ const handleWebhook = async (req, res, next) => {
         });
 
         if (payment) {
+          // Check if user has any other active subscriptions
+          const activePayment = await prisma.payment.findFirst({
+            where: {
+              userId: payment.userId,
+              status: 'completed',
+              subscriptionEndDate: { gt: new Date() },
+            },
+          });
+
+          // Only downgrade if no other active subscription exists
+          if (!activePayment) {
+            await prisma.user.update({
+              where: { id: payment.userId },
+              data: {
+                planType: 'free',
+              },
+            });
+            console.log(`⬇️ User ${payment.userId} downgraded to free plan`);
+          }
+
           await prisma.event.create({
             data: {
               userId: payment.userId,

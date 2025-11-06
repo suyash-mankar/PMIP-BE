@@ -33,14 +33,9 @@ async function saveResumeForUser(userId, resumeFile) {
  */
 async function submitJobMatch(req, res) {
   try {
-    const { jobIntentText, desiredRole, companyPrefs, locationPref, remotePref } = req.body;
+    const { jobIntentText, desiredRole, companyPrefs, locationPref, remotePref, enableLinkedInSearch } = req.body;
     const resumeFile = req.file;
     const userId = req.user?.id; // Get user ID (required since auth is mandatory)
-
-    // Validation
-    if (!resumeFile) {
-      return res.status(400).json({ error: "Resume file is required" });
-    }
     
     // Use authenticated user's email (required since auth is mandatory)
     if (!userId || !req.user?.email) {
@@ -59,13 +54,27 @@ async function submitJobMatch(req, res) {
       return res.status(400).json({ error: "Invalid email format" });
     }
 
-    // Save resume file to user directory and database if logged in
-    let savedResumePath = resumeFile.path;
+    // Check if user has a saved resume
+    let existingPreferences = null;
+    if (userId) {
+      existingPreferences = await prisma.jobMatcherPreferences.findUnique({
+        where: { userId },
+        select: { resumeFilePath: true, resumeFileName: true },
+      });
+    }
+
+    // Validation: Resume is required if no saved resume exists
+    if (!resumeFile && !existingPreferences?.resumeFilePath) {
+      return res.status(400).json({ error: "Resume file is required. Please upload your resume." });
+    }
+
+    // Save resume file to user directory and database if a new file is uploaded
+    let savedResumePath = existingPreferences?.resumeFilePath || null;
     let resumeFileData = null;
-    let resumeFileName = null;
+    let resumeFileName = existingPreferences?.resumeFileName || null;
     let resumeFileType = null;
     
-    if (userId) {
+    if (resumeFile && userId) {
       try {
         const savedResume = await saveResumeForUser(userId, resumeFile);
         savedResumePath = savedResume.path;
@@ -76,26 +85,49 @@ async function submitJobMatch(req, res) {
         await fs.unlink(resumeFile.path).catch(() => {});
       } catch (saveError) {
         console.error("[JobMatcherController] Resume save error:", saveError);
-        // Continue with temp file path if save fails
+        // If save fails but we have existing resume, use that
+        if (!savedResumePath && existingPreferences?.resumeFilePath) {
+          savedResumePath = existingPreferences.resumeFilePath;
+          resumeFileName = existingPreferences.resumeFileName;
+        }
       }
+    }
+    
+    // Ensure we have a resume path
+    if (!savedResumePath) {
+      return res.status(400).json({ error: "Resume file is required" });
     }
 
     // Save/update user preferences if logged in
     if (userId) {
+      // Parse enableLinkedInSearch from request (can be string "true"/"false" from FormData)
+      const enableLinkedIn = enableLinkedInSearch === true || enableLinkedInSearch === 'true';
+
+      const updateData = {
+        userEmail: finalUserEmail,
+        jobIntentText,
+        desiredRole: desiredRole || null,
+        companyPrefs: companyPrefs || null,
+        locationPref: locationPref || null,
+        remotePref: remotePref || null,
+        enableLinkedInSearch: enableLinkedIn,
+      };
+
+      // Only update resume fields if a new file was uploaded
+      if (resumeFile && resumeFileData) {
+        updateData.resumeFilePath = savedResumePath;
+        updateData.resumeFileData = Buffer.from(resumeFileData);
+        updateData.resumeFileName = resumeFileName;
+        updateData.resumeFileType = resumeFileType;
+      } else if (resumeFile) {
+        // If upload failed but we have path, update it
+        updateData.resumeFilePath = savedResumePath;
+        if (resumeFileName) updateData.resumeFileName = resumeFileName;
+      }
+
       await prisma.jobMatcherPreferences.upsert({
         where: { userId },
-        update: {
-          resumeFilePath: savedResumePath,
-          resumeFileData: resumeFileData ? Buffer.from(resumeFileData) : undefined,
-          resumeFileName: resumeFileName || undefined,
-          resumeFileType: resumeFileType || undefined,
-          userEmail: finalUserEmail,
-          jobIntentText,
-          desiredRole: desiredRole || null,
-          companyPrefs: companyPrefs || null,
-          locationPref: locationPref || null,
-          remotePref: remotePref || null,
-        },
+        update: updateData,
         create: {
           userId,
           resumeFilePath: savedResumePath,
@@ -108,6 +140,7 @@ async function submitJobMatch(req, res) {
           companyPrefs: companyPrefs || null,
           locationPref: locationPref || null,
           remotePref: remotePref || null,
+          enableLinkedInSearch: enableLinkedIn,
         },
       });
     }
@@ -132,6 +165,7 @@ async function submitJobMatch(req, res) {
     // Start the graph execution in the background (don't await)
     runJobMatchGraph({
       runId: run.id,
+      userId: userId || null, // Pass userId so graph can check user preferences
       resumeFilePath: savedResumePath,
       userEmail: finalUserEmail,
       jobIntentText,
@@ -323,6 +357,7 @@ async function getPreferences(req, res) {
         companyPrefs: preferences.companyPrefs,
         locationPref: preferences.locationPref,
         remotePref: preferences.remotePref,
+        enableLinkedInSearch: preferences.enableLinkedInSearch || false,
         resumeFile: resumeFileInfo,
       },
     });
@@ -350,7 +385,7 @@ async function savePreferences(req, res) {
     // Use authenticated user's email
     const userEmail = req.user.email;
     
-    const { jobIntentText, desiredRole, companyPrefs, locationPref, remotePref } = req.body;
+    const { jobIntentText, desiredRole, companyPrefs, locationPref, remotePref, enableLinkedInSearch } = req.body;
     const resumeFile = req.file;
 
     let savedResumePath = null;
@@ -386,6 +421,7 @@ async function savePreferences(req, res) {
     if (companyPrefs !== undefined) updateData.companyPrefs = companyPrefs || null;
     if (locationPref !== undefined) updateData.locationPref = locationPref || null;
     if (remotePref !== undefined) updateData.remotePref = remotePref || null;
+    if (enableLinkedInSearch !== undefined) updateData.enableLinkedInSearch = enableLinkedInSearch === true || enableLinkedInSearch === 'true';
     if (savedResumePath) {
       updateData.resumeFilePath = savedResumePath;
       updateData.resumeFileData = resumeFileData ? Buffer.from(resumeFileData) : undefined;
@@ -408,6 +444,7 @@ async function savePreferences(req, res) {
         companyPrefs: companyPrefs || null,
         locationPref: locationPref || null,
         remotePref: remotePref || null,
+        enableLinkedInSearch: enableLinkedInSearch === true || enableLinkedInSearch === 'true' || false,
       },
     });
 
@@ -420,6 +457,7 @@ async function savePreferences(req, res) {
         companyPrefs: preferences.companyPrefs,
         locationPref: preferences.locationPref,
         remotePref: preferences.remotePref,
+        enableLinkedInSearch: preferences.enableLinkedInSearch || false,
         hasResume: !!preferences.resumeFilePath,
       },
     });

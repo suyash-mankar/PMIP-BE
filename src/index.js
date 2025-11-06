@@ -15,6 +15,7 @@ const sessionRoutes = require('./routes/session');
 const newsletterRoutes = require('./routes/newsletter');
 const resumeRoutes = require('./routes/resume');
 const jobMatcherRoutes = require('./routes/jobMatcher');
+const integrationsRoutes = require('./routes/integrations');
 const errorHandler = require('./middlewares/errorHandler');
 const { generalLimiter } = require('./middlewares/rateLimiter');
 
@@ -52,6 +53,7 @@ app.use('/api/session', sessionRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/resume', resumeRoutes);
 app.use('/api/job-matcher', jobMatcherRoutes);
+app.use('/api/integrations', integrationsRoutes);
 
 // 404 handler
 app.use((req, res) => {

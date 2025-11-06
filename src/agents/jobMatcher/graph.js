@@ -4,7 +4,7 @@ const { ingestResumeNode } = require("./nodes/ingestResume");
 const { parseResumeAgent } = require("./nodes/parseResume");
 const { intentParserAgent } = require("./nodes/parseIntent");
 const { queryBuilderNode } = require("./nodes/queryBuilder");
-const { aggregatorSearchAgent } = require("./nodes/aggregatorSearch");
+const { multiSourceJobSearchAgent } = require("./nodes/multiSourceJobSearch");
 const { normalizeAndDedupNode } = require("./nodes/normalizeAndDedup");
 const { rankerAgent } = require("./nodes/ranker");
 const { rationaleAgent } = require("./nodes/rationale");
@@ -61,16 +61,8 @@ async function runJobMatchGraph(input) {
     console.log("[JobMatchGraph] Step 4: Build Queries");
     state = await queryBuilderNode(state);
 
-    console.log("[JobMatchGraph] Step 5: Search Jobs (Aggregator)");
-    state = await aggregatorSearchAgent(state);
-
-    // Conditional LinkedIn search
-    const LINKEDIN_THRESHOLD = 20; // Minimum jobs needed
-    if (state.jobsRaw.length < LINKEDIN_THRESHOLD && process.env.LINKEDIN_ENABLED === "true") {
-      console.log("[JobMatchGraph] Step 5b: Search Jobs (LinkedIn) - SKIPPED (not implemented)");
-      state.metadata.linkedinAttempted = true;
-      // LinkedIn search would go here
-    }
+    console.log("[JobMatchGraph] Step 5: Search Jobs (Multi-Source: JSearch + LinkedIn)");
+    state = await multiSourceJobSearchAgent(state);
 
     console.log("[JobMatchGraph] Step 6: Normalize and Deduplicate");
     state = await normalizeAndDedupNode(state);

@@ -174,8 +174,30 @@ async function checkUserLimit(user) {
     const trialExpired = checkTrialExpired(currentUser);
     const remainingHours = getRemainingTrialHours(currentUser);
 
-    // Pro paid user - unlimited access
-    if (currentUser.planType === 'pro_paid') {
+    // Check for active payment subscription (fallback if planType wasn't updated)
+    const activePayment = await prisma.payment.findFirst({
+      where: {
+        userId: currentUser.id,
+        status: 'completed',
+        subscriptionEndDate: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Pro paid user - unlimited access (check planType OR active payment)
+    if (currentUser.planType === 'pro_paid' || activePayment) {
+      // If user has active payment but wrong planType, fix it
+      if (activePayment && currentUser.planType !== 'pro_paid') {
+        await prisma.user.update({
+          where: { id: currentUser.id },
+          data: {
+            planType: 'pro_paid',
+            subscriptionEndDate: activePayment.subscriptionEndDate,
+          },
+        });
+        console.log(`✅ Fixed planType for user ${currentUser.id} - had active payment but wrong planType`);
+      }
+
       return {
         isAuthenticated: true,
         planType: 'pro_paid',

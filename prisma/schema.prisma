@@ -36,6 +36,7 @@ model User {
   flashcardProgress     FlashcardProgress[]
   jobMatcherPreferences JobMatcherPreferences?
   jobMatchRuns          JobMatchRun[]
+  userSecrets           UserSecret[]
 
   @@index([email])
   @@index([googleId])
@@ -362,24 +363,45 @@ model AgentExecution {
 }
 
 model JobMatcherPreferences {
-  id              Int       @id @default(autoincrement())
-  userId          Int       @unique
-  resumeFilePath  String?   // Path to saved resume file
-  resumeFileData  Bytes?    // Binary data of the resume file (PDF/DOCX)
-  resumeFileName  String?   // Original filename
-  resumeFileType  String?   // MIME type (application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document)
-  userEmail       String
-  jobIntentText   String    @db.Text
-  desiredRole     String?
-  companyPrefs    String?
-  locationPref    String?
-  remotePref      String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id                  Int       @id @default(autoincrement())
+  userId              Int       @unique
+  resumeFilePath      String?   // Path to saved resume file
+  resumeFileData      Bytes?    // Binary data of the resume file (PDF/DOCX)
+  resumeFileName      String?   // Original filename
+  resumeFileType      String?   // MIME type (application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document)
+  userEmail           String
+  jobIntentText       String    @db.Text
+  desiredRole         String?
+  companyPrefs        String?
+  locationPref        String?
+  remotePref          String?
+  enableLinkedInSearch Boolean  @default(false) // User preference to enable/disable LinkedIn search
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model UserSecret {
+  id            Int       @id @default(autoincrement())
+  userId        Int
+  key           String    // e.g., 'linkedin_li_at', 'api_key', etc.
+  ciphertext    String    @db.Text // Encrypted value
+  nonce         String    // IV for decryption (hex)
+  authTag       String    // GCM authentication tag (hex)
+  status        String    @default("active") // active, invalid, expired
+  lastTestedAt  DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@index([userId])
+  @@index([key])
+  @@index([status])
 }
 
 model JobMatchRun {
