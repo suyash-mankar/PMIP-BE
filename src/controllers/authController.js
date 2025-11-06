@@ -121,9 +121,15 @@ const googleAuthCallback = async (req, res) => {
       { expiresIn: JWT_EXPIRES_IN }
     );
 
-    // Redirect to frontend with token
+    // Get redirect URL from cookie (set before OAuth)
+    const redirectUrl = req.cookies?.oauth_redirect || '/interview';
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    res.redirect(`${frontendUrl}/auth/login?token=${token}`);
+    
+    // Clear the redirect cookie
+    res.clearCookie('oauth_redirect');
+    
+    // Redirect to frontend with token and original redirect URL
+    res.redirect(`${frontendUrl}/auth/login?token=${token}&redirect=${encodeURIComponent(redirectUrl)}`);
   } catch (error) {
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     res.redirect(`${frontendUrl}/auth/login?error=Authentication failed`);

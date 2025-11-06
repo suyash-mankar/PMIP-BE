@@ -3,6 +3,7 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
+const cookieParser = require('cookie-parser');
 const passport = require('./config/passport');
 
 const authRoutes = require('./routes/auth');
@@ -33,6 +34,7 @@ app.use(cors());
 // Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Initialize Passport
 app.use(passport.initialize());
