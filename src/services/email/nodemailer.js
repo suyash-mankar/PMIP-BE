@@ -12,22 +12,30 @@ function createTransporter() {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    connectionTimeout: 30000, // 30 seconds to establish connection (increased for Railway)
+    socketTimeout: 60000, // 60 seconds for socket operations
+    greetingTimeout: 15000, // 15 seconds for SMTP greeting
+    pool: true, // Use connection pooling
+    maxConnections: 1,
+    maxMessages: 1,
   };
 
   return nodemailer.createTransport(config);
 }
 
 /**
- * Send job matching results email
+ * Send job matching results email with timeout
  */
 async function sendJobMatchEmail({ to, jobs, userIntent, runId }) {
+  let transporter = null;
+  
   try {
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
       console.warn("SMTP credentials not configured, skipping email");
       return { success: false, message: "SMTP not configured" };
     }
 
-    const transporter = createTransporter();
+    transporter = createTransporter();
     const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
     const fromName = process.env.SMTP_FROM_NAME || "PM Interview Practice - Job Matcher";
 
@@ -42,12 +50,37 @@ async function sendJobMatchEmail({ to, jobs, userIntent, runId }) {
       text: generateJobMatchEmailText({ jobs, userIntent }), // Fallback plain text
     };
 
-    const info = await transporter.sendMail(mailOptions);
+    // Send email with timeout (60 seconds total)
+    const emailPromise = transporter.sendMail(mailOptions);
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Email send timeout after 60 seconds")), 60000);
+    });
+
+    const info = await Promise.race([emailPromise, timeoutPromise]);
     console.log("Email sent:", info.messageId);
+    
+    // Close transporter connection (ignore errors if already closed)
+    try {
+      if (transporter) {
+        transporter.close();
+      }
+    } catch (closeError) {
+      // Ignore close errors
+    }
     
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error("Email send error:", error);
+    
+    // Ensure transporter is closed even on error
+    try {
+      if (transporter && transporter.close) {
+        transporter.close();
+      }
+    } catch (closeError) {
+      // Ignore close errors
+    }
+    
     return { success: false, error: error.message };
   }
 }

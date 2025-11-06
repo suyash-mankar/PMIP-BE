@@ -25,31 +25,7 @@ async function emailSenderNode(state) {
       rationale: job.rationale,
     }));
 
-    // Send email
-    const result = await sendJobMatchEmail({
-      to: state.userEmail,
-      jobs: jobsForEmail,
-      userIntent: state.jobIntentText,
-      runId: state.runId,
-    });
-
-    if (!result.success) {
-      throw new Error(result.error || "Failed to send email");
-    }
-
-    console.log(`[EmailSender] Email sent successfully to ${state.userEmail}`);
-
-    // Update database
-    await prisma.jobMatchRun.update({
-      where: { id: state.runId },
-      data: {
-        status: "emailed",
-        jobsFound: state.topJobs.length,
-        emailSentAt: new Date(),
-      },
-    });
-
-    // Save results
+    // Save results first (so they're available even if email fails)
     await prisma.jobMatchResult.createMany({
       data: jobsForEmail.map((job) => ({
         runId: state.runId,
@@ -67,19 +43,65 @@ async function emailSenderNode(state) {
       })),
     });
 
+    // Send email (non-blocking - don't fail the entire graph if email fails)
+    console.log(`[EmailSender] Attempting to send email to ${state.userEmail}...`);
+    const result = await sendJobMatchEmail({
+      to: state.userEmail,
+      jobs: jobsForEmail,
+      userIntent: state.jobIntentText,
+      runId: state.runId,
+    });
+
+    if (!result.success) {
+      // Email failed, but don't throw - mark as completed with email_failed status
+      console.warn(`[EmailSender] Email sending failed: ${result.error}`);
+      console.warn(`[EmailSender] Job results are saved in database, user can access them via API`);
+      
+      await prisma.jobMatchRun.update({
+        where: { id: state.runId },
+        data: {
+          status: "completed_email_failed", // New status: completed but email failed
+          jobsFound: state.topJobs.length,
+          error: result.error || "Failed to send email",
+        },
+      });
+
+      // Return success state even though email failed
+      // The graph should complete successfully since results are saved
+      return {
+        ...state,
+        emailSent: false,
+        emailError: result.error,
+      };
+    }
+
+    console.log(`[EmailSender] Email sent successfully to ${state.userEmail}`);
+
+    // Update database with success
+    await prisma.jobMatchRun.update({
+      where: { id: state.runId },
+      data: {
+        status: "emailed",
+        jobsFound: state.topJobs.length,
+        emailSentAt: new Date(),
+      },
+    });
+
     return {
       ...state,
       emailSent: true,
     };
   } catch (error) {
-    console.error("[EmailSender] Error:", error);
+    console.error("[EmailSender] Unexpected error:", error);
     
-    // Update database with error
+    // For unexpected errors (not email sending failures), still mark as completed_email_failed
+    // since results are already saved
     try {
       await prisma.jobMatchRun.update({
         where: { id: state.runId },
         data: {
-          status: "error",
+          status: "completed_email_failed",
+          jobsFound: state.topJobs.length,
           error: error.message,
         },
       });
@@ -91,7 +113,14 @@ async function emailSenderNode(state) {
       node: "emailSender",
       error: error.message,
     });
-    throw error;
+    
+    // Don't throw - return success state so graph completes
+    // Results are already saved, so the job matching is successful
+    return {
+      ...state,
+      emailSent: false,
+      emailError: error.message,
+    };
   }
 }
 

@@ -76,12 +76,19 @@ async function runJobMatchGraph(input) {
     console.log("[JobMatchGraph] Step 9: Send Email");
     state = await emailSenderNode(state);
 
-    // Success
+    // Success (even if email failed, results are saved)
     state.metadata.endTime = new Date().toISOString();
     const duration = Date.now() - startTime;
 
     console.log(`\n========================================`);
-    console.log(`[JobMatchGraph] Completed successfully`);
+    if (state.emailSent) {
+      console.log(`[JobMatchGraph] Completed successfully`);
+    } else {
+      console.log(`[JobMatchGraph] Completed (email failed but results saved)`);
+      if (state.emailError) {
+        console.log(`[JobMatchGraph] Email error: ${state.emailError}`);
+      }
+    }
     console.log(`[JobMatchGraph] Duration: ${(duration / 1000).toFixed(2)}s`);
     console.log(`[JobMatchGraph] Jobs found: ${state.topJobs.length}`);
     console.log(`========================================\n`);
