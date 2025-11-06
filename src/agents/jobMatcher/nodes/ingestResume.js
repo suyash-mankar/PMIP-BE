@@ -13,6 +13,13 @@ async function ingestResumeNode(state) {
       throw new Error("Resume file path not provided");
     }
 
+    // Check if file exists
+    try {
+      await fs.access(state.resumeFilePath);
+    } catch (accessError) {
+      throw new Error(`Resume file not found at path: ${state.resumeFilePath}`);
+    }
+
     // Extract text from resume
     const resumeText = await extractResumeText(state.resumeFilePath);
     

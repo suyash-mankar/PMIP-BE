@@ -59,20 +59,25 @@ async function submitJobMatch(req, res) {
     if (userId) {
       existingPreferences = await prisma.jobMatcherPreferences.findUnique({
         where: { userId },
-        select: { resumeFilePath: true, resumeFileName: true },
+        select: { 
+          resumeFilePath: true, 
+          resumeFileName: true,
+          resumeFileData: true,
+          resumeFileType: true,
+        },
       });
     }
 
     // Validation: Resume is required if no saved resume exists
-    if (!resumeFile && !existingPreferences?.resumeFilePath) {
+    if (!resumeFile && !existingPreferences?.resumeFilePath && !existingPreferences?.resumeFileData) {
       return res.status(400).json({ error: "Resume file is required. Please upload your resume." });
     }
 
     // Save resume file to user directory and database if a new file is uploaded
-    let savedResumePath = existingPreferences?.resumeFilePath || null;
+    let savedResumePath = null;
     let resumeFileData = null;
     let resumeFileName = existingPreferences?.resumeFileName || null;
-    let resumeFileType = null;
+    let resumeFileType = existingPreferences?.resumeFileType || null;
     
     if (resumeFile && userId) {
       try {
@@ -85,11 +90,52 @@ async function submitJobMatch(req, res) {
         await fs.unlink(resumeFile.path).catch(() => {});
       } catch (saveError) {
         console.error("[JobMatcherController] Resume save error:", saveError);
-        // If save fails but we have existing resume, use that
-        if (!savedResumePath && existingPreferences?.resumeFilePath) {
+        // If save fails, try to use existing resume
+        if (existingPreferences?.resumeFileData) {
+          resumeFileData = existingPreferences.resumeFileData;
+          resumeFileName = existingPreferences.resumeFileName;
+          resumeFileType = existingPreferences.resumeFileType;
+        } else if (existingPreferences?.resumeFilePath) {
           savedResumePath = existingPreferences.resumeFilePath;
           resumeFileName = existingPreferences.resumeFileName;
         }
+      }
+    } else if (existingPreferences) {
+      // Using saved resume - check if file exists on disk
+      if (existingPreferences.resumeFilePath) {
+        try {
+          await fs.access(existingPreferences.resumeFilePath);
+          // File exists, use it
+          savedResumePath = existingPreferences.resumeFilePath;
+        } catch (accessError) {
+          // File doesn't exist, try to use database buffer
+          console.warn("[JobMatcherController] Resume file not found on disk, using database buffer");
+          if (existingPreferences.resumeFileData) {
+            resumeFileData = existingPreferences.resumeFileData;
+          } else {
+            return res.status(400).json({ 
+              error: "Resume file not found. Please upload your resume again." 
+            });
+          }
+        }
+      } else if (existingPreferences.resumeFileData) {
+        // Only database buffer available
+        resumeFileData = existingPreferences.resumeFileData;
+      }
+    }
+    
+    // If we have resumeFileData but no path, create a temp file
+    if (resumeFileData && !savedResumePath) {
+      try {
+        const tempDir = path.join(__dirname, '../../uploads/job-matcher/temp');
+        await fs.mkdir(tempDir, { recursive: true });
+        const tempFileName = `temp-${Date.now()}-${resumeFileName || 'resume.pdf'}`;
+        savedResumePath = path.join(tempDir, tempFileName);
+        await fs.writeFile(savedResumePath, resumeFileData);
+        console.log(`[JobMatcherController] Created temp file from database buffer: ${savedResumePath}`);
+      } catch (tempError) {
+        console.error("[JobMatcherController] Failed to create temp file:", tempError);
+        return res.status(500).json({ error: "Failed to process resume file" });
       }
     }
     
